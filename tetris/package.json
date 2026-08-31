@@ -1,0 +1,38 @@
+{
+  "name": "tetris",
+  "version": "1.0.0",
+  "description": "A guideline-style Tetris with SRS, wall kicks, T-spins and a synthesized chiptune soundtrack.",
+  "private": true,
+  "main": "electron-main.cjs",
+  "scripts": {
+    "start": "electron . --no-sandbox"
+  },
+  "build": {
+    "appId": "com.fishthatstuff.tetris",
+    "productName": "FISH THAT STUFF - Tetris",
+    "icon": "assets/fish-logo.ico",
+    "files": [
+      "electron-main.cjs",
+      "index.html",
+      "style.css",
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/fish-logo.ico",
+      "artifactName": "FISH-THAT-STUFF-Tetris.exe"
+    }
+  },
+  "dependencies": {
+    "discord-rpc": "^4.0.1",
+    "electron": "^44.0.0"
+  }
+}

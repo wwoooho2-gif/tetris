@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>FISH THAT STUFF</title>
+<link rel="icon" href="assets/fish-logo.webp">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg-layer" id="bg-layer"></div>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-logo" src="assets/fish-logo.webp" alt="FISH!" width="46" height="46">
+      <div class="brand-text">
+        <h1>FISH THAT STUFF</h1>
+        <span class="brand-sub">stack em up down at the docks</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="chip chip-bot" id="btn-bot" type="button" aria-pressed="false">Auto play</button>
+      <button class="chip" id="btn-sound" type="button" aria-pressed="true">Music</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <aside class="rail rail-left">
+      <section class="panel panel-preview panel-hold">
+        <h2>Hold</h2>
+        <div class="preview-box"><canvas id="hold"></canvas></div>
+      </section>
+
+      <section class="panel stats">
+        <div class="stat stat-lead"><span>Score</span><b id="ui-score">0</b></div>
+        <div class="stat stat-extra"><span>Best</span><b id="ui-best">0</b></div>
+        <div class="stat"><span>Level</span><b id="ui-level">1</b></div>
+        <div class="stat"><span>Lines</span><b id="ui-lines">0</b></div>
+        <div class="level-progress" aria-live="polite">
+          <div class="level-progress-label">
+            <span>Next level</span>
+            <small id="ui-level-progress-text">0 / 10</small>
+          </div>
+          <div class="level-progress-bar">
+            <span id="ui-level-progress-fill"></span>
+          </div>
+        </div>
+        <div class="stat stat-extra"><span>Time</span><b id="ui-time">0:00</b></div>
+        <div class="stat stat-stage" id="row-stage"><span>Stage</span><b id="ui-stage">THE DOCKS</b></div>
+      </section>
+
+      <section class="panel difficulty-panel">
+        <h2>Difficulty</h2>
+        <div class="difficulty-buttons">
+          <button class="difficulty-btn" id="btn-diff-easy" data-difficulty="easy" type="button" aria-pressed="false">Easy</button>
+          <button class="difficulty-btn" id="btn-diff-normal" data-difficulty="normal" type="button" aria-pressed="true">Normal</button>
+          <button class="difficulty-btn" id="btn-diff-hard" data-difficulty="hard" type="button" aria-pressed="false">Hard</button>
+        </div>
+      </section>
+
+      <div class="streaks">
+        <span class="badge badge-multiplier" id="ui-multiplier" hidden>×2 Points</span>
+        <span class="badge" id="ui-b2b">Back to back</span>
+        <span class="badge badge-combo" id="ui-combo">Combo &times;1</span>
+      </div>
+    </aside>
+
+    <div class="board-wrap">
+      <canvas id="board"></canvas>
+
+      <div class="overlay" id="overlay">
+        <section class="card" data-screen="ready">
+          <div class="card-body">
+            <p class="eyebrow">Ready</p>
+            <h2>Fish that stuff</h2>
+            <p class="lede">Ten wide, twenty deep. Land four rows at once for a big one, or twist a T piece into a gap nobody thought it fit in.</p>
+            <p class="lede lede-tight">Stages are on, so every twenty lines you drop to colder water and everything speeds up.</p>
+            <button class="btn btn-primary" data-cmd="start" type="button">Start</button>
+            <p class="hint">press <kbd>Enter</kbd> to play, <kbd>B</kbd> to watch the bot</p>
+            <button class="btn btn-quiet" data-cmd="customise" type="button">Customise look &amp; sound</button>
+          </div>
+        </section>
+
+        <section class="card" data-screen="paused" hidden>
+          <div class="card-body">
+            <p class="eyebrow">Paused</p>
+            <h2>Line goes slack</h2>
+            <div class="settings">
+              <label class="setting">
+                <span>Music</span>
+                <input type="range" id="opt-music" min="0" max="100" value="35">
+                <output id="out-music">35%</output>
+              </label>
+              <label class="setting">
+                <span>Effects</span>
+                <input type="range" id="opt-sfx" min="0" max="100" value="70">
+                <output id="out-sfx">70%</output>
+              </label>
+              <label class="setting">
+                <span>Move delay</span>
+                <input type="range" id="opt-das" min="40" max="250" step="5" value="120">
+                <output id="out-das">120 ms</output>
+              </label>
+              <label class="setting">
+                <span>Repeat</span>
+                <input type="range" id="opt-arr" min="0" max="80" step="1" value="25">
+                <output id="out-arr">25 ms</output>
+              </label>
+              <label class="setting">
+                <span>Bot tempo</span>
+                <input type="range" id="opt-bot" min="1" max="4" step="1" value="2">
+                <output id="out-bot">2/beat</output>
+              </label>
+              <label class="setting">
+                <span>Refresh</span>
+                <input type="range" id="opt-refresh" min="60" max="360" step="10" value="120">
+                <output id="out-refresh">120 Hz</output>
+              </label>
+              <label class="setting">
+                <span>GUI scale</span>
+                <input type="range" id="opt-gui-scale" min="80" max="170" step="5" value="100">
+                <output id="out-gui-scale">100%</output>
+              </label>
+              <div class="toggles">
+                <label class="toggle"><input type="checkbox" id="opt-stages" checked><span>Stages</span></label>
+                <label class="toggle"><input type="checkbox" id="opt-ghost" checked><span>Ghost</span></label>
+                <label class="toggle"><input type="checkbox" id="opt-grid" checked><span>Grid</span></label>
+                <label class="toggle"><input type="checkbox" id="opt-bubbles" checked><span>Bubbles</span></label>
+                <label class="toggle"><input type="checkbox" id="opt-fullscreen"><span>Full screen</span></label>
+              </div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" data-cmd="resume" type="button">Resume</button>
+              <button class="btn" data-cmd="restart" type="button">Restart</button>
+            </div>
+            <button class="btn btn-quiet" data-cmd="customise" type="button">Customise look &amp; sound</button>
+          </div>
+        </section>
+
+        <section class="card" data-screen="theme" hidden>
+          <div class="card-body">
+            <p class="eyebrow">Customise</p>
+            <h2>Make it yours</h2>
+
+            <div class="opt-group">
+              <h3>Music</h3>
+              <div class="opt-row" id="pick-music"></div>
+            </div>
+
+            <div class="opt-group">
+              <h3>Colour</h3>
+              <div class="opt-row swatches" id="pick-colour"></div>
+              <label class="setting setting-inline">
+                <span>Custom</span>
+                <input type="color" id="opt-colour" value="#40dcf5">
+                <output id="out-colour">pick a shade</output>
+              </label>
+            </div>
+
+            <div class="opt-group">
+              <h3>Background</h3>
+              <div class="opt-row" id="pick-bg"></div>
+              <div class="btn-row">
+                <button class="btn btn-small" id="btn-bg-upload" type="button">Upload image</button>
+                <button class="btn btn-small" id="btn-bg-clear" type="button">Clear</button>
+              </div>
+              <input type="file" id="bg-file" accept="image/*" hidden>
+              <p class="note" id="bg-note">No image loaded.</p>
+              <label class="setting">
+                <span>Fade</span>
+                <input type="range" id="opt-bgfade" min="0" max="95" step="5" value="55">
+                <output id="out-bgfade">55%</output>
+              </label>
+              <div class="toggles">
+                <label class="toggle"><input type="checkbox" id="opt-bgwell"><span>Show inside the well</span></label>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" data-cmd="back" type="button">Done</button>
+          </div>
+        </section>
+
+        <section class="card" data-screen="over" hidden>
+          <div class="card-body">
+            <p class="eyebrow eyebrow-warn">Topped out</p>
+            <h2 id="over-title">One that got away</h2>
+            <div class="result">
+              <div><span>Score</span><b id="over-score">0</b></div>
+              <div><span>Lines</span><b id="over-lines">0</b></div>
+              <div><span>Level</span><b id="over-level">1</b></div>
+            </div>
+            <button class="btn btn-primary" data-cmd="start" type="button">Cast again</button>
+            <p class="hint">or press <kbd>R</kbd></p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <aside class="rail rail-right">
+      <section class="panel panel-preview panel-next">
+        <h2>Next</h2>
+        <div class="preview-box"><canvas id="next"></canvas></div>
+      </section>
+
+      <section class="panel keys" id="controls-panel">
+        <button class="controls-toggle" id="controls-toggle" type="button" aria-expanded="true" aria-controls="controls-list">
+          <h2>Controls</h2>
+          <span class="controls-toggle-indicator" aria-hidden="true">▾</span>
+        </button>
+        <dl id="controls-list">
+          <dt><kbd>&larr;</kbd><kbd>&rarr;</kbd></dt><dd>Move</dd>
+          <dt><kbd>&darr;</kbd></dt><dd>Soft drop</dd>
+          <dt><kbd>Space</kbd></dt><dd>Hard drop</dd>
+          <dt><kbd>&uarr;</kbd><kbd>X</kbd></dt><dd>Rotate</dd>
+          <dt><kbd>Z</kbd></dt><dd>Rotate back</dd>
+          <dt><kbd>A</kbd></dt><dd>Flip 180</dd>
+          <dt><kbd>C</kbd></dt><dd>Hold</dd>
+          <dt><kbd>B</kbd></dt><dd>Auto play</dd>
+          <dt><kbd>Esc</kbd></dt><dd>Pause</dd>
+        </dl>
+      </section>
+    </aside>
+  </main>
+
+  <div class="touch" id="touch">
+    <button class="tbtn" data-action="hold" type="button">Hold</button>
+    <button class="tbtn" data-action="left" type="button">&larr;</button>
+    <button class="tbtn" data-action="soft" type="button">&darr;</button>
+    <button class="tbtn" data-action="right" type="button">&rarr;</button>
+    <button class="tbtn" data-action="ccw" type="button">&#8630;</button>
+    <button class="tbtn" data-action="cw" type="button">&#8631;</button>
+    <button class="tbtn tbtn-wide" data-action="drop" type="button">Drop</button>
+  </div></div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
