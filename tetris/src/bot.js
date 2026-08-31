@@ -93,14 +93,10 @@ function evaluate(rows) {
 
 function scorePlacement(rows, shape, x, y, learningBias = 0) {
   const out = rows.slice();
-  let low = 0;
-  let high = ROWS;
   for (const r of shape.rows) {
     const ry = y + r.dy;
     if (ry < 0) return null;
     out[ry] |= shift(r.mask, x);
-    if (ry > low) low = ry;
-    if (ry < high) high = ry;
   }
 
   let cleared = 0;
@@ -112,17 +108,48 @@ function scorePlacement(rows, shape, x, y, learningBias = 0) {
   while (kept.length < ROWS) kept.unshift(0);
 
   const f = evaluate(kept);
-  const landing = ROWS - (low + high) / 2;
-  const learnedSafetyBonus = learningBias * ((12 - Math.min(12, f.holes)) * 2.5 + cleared * 8 + (COLS - Math.min(COLS, Math.abs(x))) * 1.4 - f.wells * 2.2);
-  return (
-    W.landing * landing +
-    W.cleared * cleared +
-    W.rowTrans * f.rowTrans +
-    W.colTrans * f.colTrans +
-    W.holes * f.holes +
-    W.wells * f.wells +
-    learnedSafetyBonus
-  );
+  
+  // Calculate column heights
+  const heights = [];
+  for (let col = 0; col < COLS; col++) {
+    let height = 0;
+    for (let row = ROWS - 1; row >= 0; row--) {
+      if ((kept[row] >> col) & 1) {
+        height = row + 1;
+        break;
+      }
+    }
+    heights.push(height);
+  }
+  
+  const maxHeight = Math.max(...heights);
+  const minHeight = Math.min(...heights);
+  const avgHeight = heights.reduce((a, b) => a + b, 0) / COLS;
+  
+  // Primary goal: Clear lines (worth 1000 points each)
+  const lineClearBonus = cleared * 1000;
+  
+  // Secondary: Keep board low (penalize high stacks)
+  const heightPenalty = maxHeight * maxHeight * 15;
+  
+  // Tertiary: Keep columns balanced (penalize lopsided boards)
+  const imbalancePenalty = (maxHeight - minHeight) * (maxHeight - minHeight) * 50;
+  
+  // Prevent holes which block future clears
+  const holePenalty = f.holes * f.holes * 20;
+  
+  // Penalize gaps and unevenness
+  const gapPenalty = f.colTrans * 10 + f.rowTrans * 8;
+  
+  // Penalize wells (hard to fill)
+  const wellPenalty = f.wells * 3;
+  
+  // Apply learning from past mistakes
+  const learningBonus = learningBias * 10;
+  
+  const score = lineClearBonus - heightPenalty - imbalancePenalty - holePenalty - gapPenalty - wellPenalty + learningBonus;
+  
+  return score;
 }
 
 // the executor rotates at spawn then slides across, so only offer placements that survive that path
@@ -185,6 +212,80 @@ export class Bot {
     this.failureBias = 0;
     this.failures = 0;
     this.skill = 0;
+    this.lastScore = 0;
+    this.lastLines = 0;
+    this.learningBoost = 0;
+    this.memory = new Map();           // Board states to avoid
+    this.successMemory = new Map();   // Board states that worked well
+    this.memoryCursor = 0;
+    this.gameStates = [];             // Track positions during current game
+    this.bestScore = 0;
+    this.successRate = 0.5;           // Tracks how many games are successful
+    this.gamesPlayed = 0;
+    this.loadMemory();
+    this.loadSkillData();
+  }
+
+  loadMemory() {
+    try {
+      const saved = localStorage.getItem('tetris.bot.memory');
+      if (saved) {
+        const entries = JSON.parse(saved);
+        for (const [key, value] of entries) {
+          this.memory.set(key, value);
+        }
+      }
+      
+      const successSaved = localStorage.getItem('tetris.bot.success');
+      if (successSaved) {
+        const entries = JSON.parse(successSaved);
+        for (const [key, value] of entries) {
+          this.successMemory.set(key, value);
+        }
+      }
+    } catch (e) {
+      // localStorage not available or corrupted
+    }
+  }
+
+  loadSkillData() {
+    try {
+      const data = JSON.parse(localStorage.getItem('tetris.bot.skill') || '{}');
+      this.skill = data.skill || 0;
+      this.learningBoost = data.learningBoost || 0;
+      this.bestScore = data.bestScore || 0;
+      this.successRate = data.successRate || 0.5;
+      this.gamesPlayed = data.gamesPlayed || 0;
+    } catch (e) {
+      // defaults are already set
+    }
+  }
+
+  saveMemory() {
+    try {
+      const entries = Array.from(this.memory.entries());
+      localStorage.setItem('tetris.bot.memory', JSON.stringify(entries));
+      
+      const successEntries = Array.from(this.successMemory.entries());
+      localStorage.setItem('tetris.bot.success', JSON.stringify(successEntries));
+    } catch (e) {
+      // localStorage not available
+    }
+  }
+
+  saveSkillData() {
+    try {
+      const data = {
+        skill: this.skill,
+        learningBoost: this.learningBoost,
+        bestScore: this.bestScore,
+        successRate: this.successRate,
+        gamesPlayed: this.gamesPlayed
+      };
+      localStorage.setItem('tetris.bot.skill', JSON.stringify(data));
+    } catch (e) {
+      // localStorage not available
+    }
   }
 
   reset() {
@@ -193,31 +294,153 @@ export class Bot {
     this.aligned = false;
     this.tries = 0;
     this.timer = 0;
-    this.perBeat = Math.max(0.35, 1 - this.skill * 0.12);
+    this.lastScore = 0;
+    this.lastLines = 0;
+    this.gameStates = [];  // Reset game state tracking
+    this.perBeat = Math.max(0.05, 1.0 - (this.skill + this.learningBoost * 2.2) * 0.11);
+  }
+
+  boardSignature(grid) {
+    let sig = '';
+    for (let y = 0; y < ROWS; y++) {
+      let row = 0;
+      for (let x = 0; x < COLS; x++) row = (row << 1) | (grid[y][x] ? 1 : 0);
+      sig += `${row}|`;
+    }
+    return sig;
+  }
+
+  rememberMistake(game, move = null) {
+    if (!game || !game.active) return;
+    const sig = `${game.active.key}:${this.boardSignature(game.grid)}:${move ? `${move.rot}:${move.x}:${move.y}` : 'fallback'}`;
+    const prev = this.memory.get(sig) || 0;
+    const next = Math.min(50, prev + 5);  // More aggressive learning (was 28, 2.8)
+    this.memory.set(sig, next);
+    
+    // Track game state for later analysis
+    this.gameStates.push({ sig, score: game.score, lines: game.lines });
+    
+    if (this.memory.size > 3000) {  // Increase memory size (was 2000)
+      // Remove least-learned patterns (lowest values)
+      let minKey = null;
+      let minVal = Infinity;
+      for (const [key, val] of this.memory.entries()) {
+        if (val < minVal) {
+          minVal = val;
+          minKey = key;
+        }
+      }
+      if (minKey) this.memory.delete(minKey);
+    }
+    
+    this.memoryCursor = (this.memoryCursor + 1) % 50;  // Save more often (was 100)
+    if (this.memoryCursor === 0) {
+      this.saveMemory();
+    }
+  }
+
+  rememberSuccess(game, move) {
+    if (!game || !game.active) return;
+    const sig = `${game.active.key}:${this.boardSignature(game.grid)}:${move ? `${move.rot}:${move.x}:${move.y}` : 'fallback'}`;
+    const prev = this.successMemory.get(sig) || 0;
+    const next = Math.min(30, prev + 1);
+    this.successMemory.set(sig, next);
+  }
+
+  patternBias(game) {
+    if (!game || !game.active) return 0;
+    const sig = `${game.active.key}:${this.boardSignature(game.grid)}:${game.active.x}:${game.active.rot}`;
+    
+    // Strong penalty for bad patterns (learned mistakes)
+    const badValue = this.memory.get(sig) || 0;
+    const badBias = -Math.min(30, badValue * 5);  // Stronger penalty (was 12, 3.2)
+    
+    // Bonus for good patterns (successful moves)
+    const goodValue = this.successMemory.get(sig) || 0;
+    const goodBonus = Math.min(20, goodValue * 2);
+    
+    return badBias + goodBonus;
   }
 
   recordFailure(score = 0, lines = 0) {
     this.failures += 1;
-    const gain = 0.55 + Math.max(0, 80 - score) / 120 + Math.max(0, 20 - lines) / 18;
-    this.failureBias = Math.min(12, this.failureBias + gain);
-    this.skill = Math.min(8, this.skill + gain * 0.75 + 0.2);
-    this.perBeat = Math.max(0.35, 1 - this.skill * 0.12);
+    this.gamesPlayed++;
+    
+    // Mark all game states as bad
+    for (const state of this.gameStates) {
+      const prev = this.memory.get(state.sig) || 0;
+      const penalty = 8 + (score < 100 ? 5 : 0);  // Extra penalty for very short games
+      this.memory.set(state.sig, Math.min(50, prev + penalty));
+    }
+    
+    const penalty = 3.0 + Math.max(0, 180 - score) / 40 + Math.max(0, 30 - lines) / 8;
+    this.failureBias = Math.min(60, this.failureBias + penalty * 3);  // More aggressive (was 40)
+    this.skill = Math.max(0, this.skill - penalty);  // Stronger penalty
+    this.learningBoost = Math.min(30, this.learningBoost + penalty * 2);  // More boost (was 18)
+    
+    const learningLevel = this.skill + this.learningBoost * 2.2;
+    this.perBeat = Math.max(0.05, 1.0 - learningLevel * 0.11);
+    
+    // Update success rate
+    const successThreshold = 500;  // Games with score > 500 are considered successful
+    if (score > successThreshold) {
+      this.successRate = Math.min(0.95, this.successRate * 0.98 + 0.02);  // Learning success
+    } else {
+      this.successRate = Math.max(0.1, this.successRate * 0.95);  // Failure hurts learning
+    }
+    
+    // Save learning data when game ends
+    this.saveMemory();
+    this.saveSkillData();
   }
 
   update(dt, game, audio) {
     if (!game.active || game.state !== 'playing') return;
 
-    this.failureBias = Math.max(0, this.failureBias * 0.985);
-    this.skill = Math.max(0, this.skill * 0.993);
-    this.perBeat = Math.max(0.35, 1 - this.skill * 0.12);
+    const scoreGain = Math.max(0, game.score - this.lastScore);
+    const lineGain = Math.max(0, game.lines - this.lastLines);
+    const levelGain = Math.max(0, game.level - 1) * 0.05;
+    
+    // Enhanced learning: more aggressive skill growth
+    const progressGain = dt * (0.1 + lineGain * 0.2 + Math.min(1.0, scoreGain / 1000) + game.level * 0.05 + levelGain * 0.5);
+    
+    if (scoreGain > 0 || lineGain > 0) {
+      this.skill = Math.min(40, this.skill + progressGain * 2);      // Stronger growth (was 24, 1.2)
+      this.learningBoost = Math.min(50, this.learningBoost + progressGain * 2);  // Stronger boost (was 18, 1.4)
+      
+      // Track successful states during good games
+      for (const state of this.gameStates) {
+        this.rememberSuccess(game, { x: 0 });  // Mark states during good scoring as positive
+      }
+    } else {
+      this.skill = Math.max(0, this.skill - dt * 0.005);  // Slower decay (was 0.02)
+      this.learningBoost = Math.max(0, this.learningBoost - dt * 0.02);  // Slower decay (was 0.06)
+    }
+
+    this.failureBias = Math.max(0, this.failureBias * 0.99 - dt * 0.05);  // Faster recovery (was 0.985, 0.035)
+    this.skill = Math.max(0, this.skill * 0.995 + dt * 0.05 + game.level * 0.003);  // Faster growth
+    
+    // Update best score and track improvement
+    if (game.score > this.bestScore) {
+      this.bestScore = game.score;
+      this.saveSkillData();  // Save immediately on new best score
+    }
+    
+    const learningLevel = this.skill + this.learningBoost * 2.2;
+    this.perBeat = Math.max(0.05, 1.0 - learningLevel * 0.15);  // More speed boost as skill grows
+    this.lastScore = game.score;
+    this.lastLines = game.lines;
 
     if (this.serial !== game.pieceSerial) {
       this.serial = game.pieceSerial;
-      this.plan = planMove(game, this.failureBias + this.skill * 0.7);
+      const adaptiveBias = this.failureBias + this.skill * 2 + this.learningBoost * 1.5 + this.patternBias(game) + game.level * 2;
+      this.plan = planMove(game, adaptiveBias);
+      if (this.plan) this.rememberMistake(game, this.plan);
       this.aligned = false;
       this.tries = 0;
     }
     if (!this.plan) {
+      this.rememberMistake(game);
       game.hardDrop();
       return;
     }
@@ -232,9 +455,7 @@ export class Bot {
 
     if (!this.aligned) this.align(game);
 
-    // Drop as soon as the move is ready and the placement is good; only use the beat timer as a
-    // fallback so the bot can react faster and make more efficient placements.
-    const shouldDrop = this.aligned && (game.grounded() || this.plan.score > 180 || this.due(dt, audio));
+    const shouldDrop = this.aligned && (game.grounded() || this.plan.score > 75 || this.due(dt, audio));
     if (shouldDrop) {
       game.hardDrop();
       this.aligned = false;
@@ -255,18 +476,23 @@ export class Bot {
     while (game.active.x !== this.plan.x && guard++ < COLS + 2) {
       if (!game.move(Math.sign(this.plan.x - game.active.x), 0)) break;
     }
+    if (game.active.x !== this.plan.x && this.tries < 2) {
+      this.tries++;
+      const drift = Math.sign(this.plan.x - game.active.x);
+      if (drift !== 0) game.move(drift, 0);
+    }
     game.quiet = false;
     this.aligned = true;
   }
 
   due(dt, audio) {
-    const step = Math.max(0.35, this.perBeat);
+    const step = Math.max(0.05, this.perBeat);
     if (audio && audio.playing && audio.tickFired >= 0) {
       const threshold = Math.max(1, Math.round(step));
       return audio.tickFired % threshold === 0;
     }
     this.timer += dt;
-    const gap = (audio ? audio.beatSeconds() : 0.35) / step;
+    const gap = (audio ? audio.beatSeconds() : 0.22) / step;
     if (this.timer >= gap) {
       this.timer = 0;
       return true;

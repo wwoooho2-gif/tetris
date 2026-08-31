@@ -98,7 +98,18 @@ export function kicks(key, from, to) {
 }
 
 export function shuffledBag(isHardMode = false) {
-  const bag = (isHardMode ? PIECE_KEYS_HARD : PIECE_KEYS).slice();
+  const baseBag = PIECE_KEYS.slice();
+  if (!isHardMode) {
+    for (let i = baseBag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [baseBag[i], baseBag[j]] = [baseBag[j], baseBag[i]];
+    }
+    return baseBag;
+  }
+
+  // Hard mode keeps the standard bag but makes the plus-piece much rarer.
+  // The plus appears only once in a larger weighted pool, so it is uncommon but still possible.
+  const bag = [...PIECE_KEYS, ...PIECE_KEYS, ...PIECE_KEYS, 'P'];
   for (let i = bag.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [bag[i], bag[j]] = [bag[j], bag[i]];

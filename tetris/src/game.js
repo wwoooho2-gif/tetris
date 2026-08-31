@@ -29,7 +29,7 @@ const MAX_LOCK_RESETS = 15;  // Max times lock delay can reset
 const SOFT_INTERVAL = 1 / 35; // Gravity acceleration interval
 const CLEAR_TIME = 0.3;      // Seconds to display clearing animation
 const ENTRY_DELAY = 0.08;    // Seconds for piece entry animation
-const MAX_LEVEL = 20;        // Maximum game level
+const MAX_LEVEL = 256;       // Maximum game level
 
 const CLEAR_NAME = ['', 'SINGLE', 'DOUBLE', 'TRIPLE', 'TETRIS'];
 
@@ -152,8 +152,9 @@ export class Game {
 
   gravityInterval() {
     const l = Math.min(this.level, MAX_LEVEL);
-    const base = Math.pow(0.8 - (l - 1) * 0.007, l - 1);
-    return Math.max(0.008, (base / this.stageSpeed) / this.difficultySpeedMultiplier);
+    const levelRamp = 1 / (1 + (l - 1) * 0.085);
+    const base = Math.pow(0.86 - (l - 1) * 0.006, Math.max(1, l - 1));
+    return Math.max(0.006, (base * levelRamp / this.stageSpeed) / this.difficultySpeedMultiplier);
   }
 
   get stageSpeed() {

@@ -143,24 +143,48 @@ export class Input {
   }
 
   bindTouch(root) {
+    const touchStates = new Map();  // Track active touch points
+    
     root.querySelectorAll('[data-action]').forEach((el) => {
       const action = el.dataset.action;
+      const touchId = Symbol(action);
+      
       const down = (e) => {
-        e.preventDefault();
+        if (e.pointerType === 'touch') e.preventDefault();
+        
+        // Prevent duplicate presses on multi-touch
+        if (touchStates.has(action)) return;
+        touchStates.set(action, true);
+        
         this.fire('any');
         if (action === 'pause' || action === 'restart') this.fire(action);
         else this.press(action);
         el.classList.add('is-down');
       };
+      
       const up = (e) => {
-        e.preventDefault();
+        if (e.pointerType === 'touch') e.preventDefault();
+        touchStates.delete(action);
         this.release(action);
         el.classList.remove('is-down');
       };
-      el.addEventListener('pointerdown', down);
-      el.addEventListener('pointerup', up);
-      el.addEventListener('pointercancel', up);
-      el.addEventListener('pointerleave', up);
+      
+      const cancel = (e) => {
+        if (e.pointerType === 'touch') e.preventDefault();
+        touchStates.delete(action);
+        this.release(action);
+        el.classList.remove('is-down');
+      };
+      
+      el.addEventListener('pointerdown', down, { passive: false });
+      el.addEventListener('pointerup', up, { passive: false });
+      el.addEventListener('pointercancel', cancel, { passive: false });
+      el.addEventListener('pointerleave', cancel, { passive: false });
+      
+      // Fallback touch events for older devices
+      el.addEventListener('touchstart', down, { passive: false });
+      el.addEventListener('touchend', up, { passive: false });
+      el.addEventListener('touchcancel', cancel, { passive: false });
     });
   }
 }

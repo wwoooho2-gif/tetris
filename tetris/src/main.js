@@ -201,7 +201,9 @@ function applySettings() {
   $('out-bot').textContent = `${settings.botBeat}/beat`;
   $('out-refresh').textContent = `${settings.refreshRate} Hz`;
   $('out-gui-scale').textContent = `${settings.guiScale}%`;
-  document.documentElement.style.setProperty('--ui-scale', String(Math.min(1.7, Math.max(0.8, settings.guiScale / 100))));
+  const compact = window.matchMedia('(max-width: 700px), (max-height: 560px)').matches;
+  const uiScale = compact ? 1 : Math.min(1.7, Math.max(0.8, settings.guiScale / 100));
+  document.documentElement.style.setProperty('--ui-scale', String(uiScale));
   const win = isElectronRuntime && electronApi && electronApi.remote ? electronApi.remote.getCurrentWindow() : null;
   if (win && typeof win.isFullScreen === 'function') {
     const shouldFull = Boolean(settings.fullscreen);
@@ -209,9 +211,11 @@ function applySettings() {
   }
   const soundBtn = $('btn-sound');
   const botBtn = $('btn-bot');
+  const optionsBtn = $('btn-options');
 
   if (soundBtn) soundBtn.setAttribute('aria-pressed', String(settings.musicOn));
   if (botBtn) botBtn.setAttribute('aria-pressed', String(settings.autoplay));
+  if (optionsBtn) optionsBtn.hidden = !window.matchMedia('(max-width: 700px), (max-height: 560px)').matches;
 
   audio.setTheme(settings.musicTheme, game.level, game.stageSpeed);
   applyLook();
@@ -222,6 +226,15 @@ function showScreen(name) {
   for (const key of Object.keys(cards)) cards[key].hidden = key !== name;
   overlay.hidden = !name;
   input.enabled = !name;
+  if (name) {
+    document.body.classList.add('overlay-open');
+  } else {
+    document.body.classList.remove('overlay-open');
+    // Refocus input when closing overlay on touch devices
+    if ('ontouchstart' in window) {
+      setTimeout(() => document.body.focus(), 50);
+    }
+  }
 }
 
 async function updateDiscordActivity() {
@@ -481,9 +494,9 @@ function updateHud() {
     last.lines = game.lines;
   }
 
-  const progressLines = game.level >= 20 ? 10 : game.lines - ((game.level - 1) * 10);
-  const progressPct = game.level >= 20 ? 100 : Math.min(100, Math.max(0, (progressLines / 10) * 100));
-  const progressText = game.level >= 20 ? 'MAX' : `${Math.min(10, Math.max(0, progressLines))} / 10`;
+  const progressLines = game.level >= 256 ? 10 : game.lines - ((game.level - 1) * 10);
+  const progressPct = game.level >= 256 ? 100 : Math.min(100, Math.max(0, (progressLines / 10) * 100));
+  const progressText = game.level >= 256 ? 'MAX' : `${Math.min(10, Math.max(0, progressLines))} / 10`;
   if (Math.round(progressPct) !== last.progressPct || progressText !== last.progressText) {
     hud.progressFill.style.width = `${progressPct}%`;
     hud.progressText.textContent = progressText;
@@ -569,8 +582,39 @@ overlay.addEventListener('click', (e) => {
   else if (action === 'customise') {
     themeReturn = cards.paused.hidden ? 'ready' : 'paused';
     showScreen('theme');
-  } else if (action === 'back') showScreen(themeReturn);
+  } else if (action === 'back') {
+    // When returning from theme customization
+    if (!cards.theme.hidden) {
+      // If we came from playing state (not paused), return to game with input enabled
+      if (themeReturn === 'paused' && game.state === State.Playing) {
+        showScreen(null);
+      } else {
+        showScreen(themeReturn);
+      }
+    } else {
+      showScreen(themeReturn);
+    }
+  }
 });
+
+// Close overlay when clicking outside the card on mobile
+overlay.addEventListener('click', (e) => {
+  if (e.target === overlay && !overlay.hidden && 'ontouchstart' in window) {
+    const paused = !cards.paused.hidden;
+    const theme = !cards.theme.hidden;
+    if (theme) {
+      // From theme screen, go back to what was before
+      if (themeReturn === 'paused' && game.state === State.Playing) {
+        showScreen(null);
+      } else {
+        showScreen(themeReturn);
+      }
+    } else if (paused && game.state === State.Playing) {
+      // From paused screen while game is playing, resume game
+      togglePause();
+    }
+  }
+}, true);
 
 // option pickers are built from the data so the markup stays short
 function buildPicker(rowId, entries, onPick, render) {
@@ -700,6 +744,30 @@ if (botBtn) {
   botBtn.addEventListener('click', () => {
     audio.unlock();
     toggleAutoplay();
+  });
+}
+
+const optionsBtn = $('btn-options');
+if (optionsBtn) {
+  optionsBtn.addEventListener('click', () => {
+    audio.unlock();
+    const overlayActive = !overlay.hidden;
+    const pausedVisible = !cards.paused.hidden;
+    if (overlayActive && pausedVisible) {
+      showScreen(null);
+      if (game.state === State.Paused) togglePause();
+      return;
+    }
+    if (game.state === State.Paused) {
+      showScreen(null);
+      togglePause();
+      return;
+    }
+    if (game.state === State.Playing) {
+      togglePause();
+      return;
+    }
+    showScreen('paused');
   });
 }
 

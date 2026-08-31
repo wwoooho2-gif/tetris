@@ -81,15 +81,16 @@ body::after {
 .app {
   position: relative;
   z-index: 1;
-  width: calc(100vw / var(--ui-scale));
-  height: calc(100vh / var(--ui-scale));
+  width: 100%;
+  height: 100%;
+  max-width: 1200px;
   display: flex;
   flex-direction: column;
   padding: 12px 16px 8px;
   gap: 10px;
-  transform: scale(var(--ui-scale));
-  transform-origin: top left;
-  margin: 0;
+  margin: 0 auto;
+  transform: none;
+  overflow: hidden;
 }
 
 /* header */
@@ -143,6 +144,9 @@ body::after {
   padding: 9px 11px 7px;
   cursor: pointer;
   transition: color .12s, border-color .12s, background .12s, box-shadow .12s;
+}
+.chip-options {
+  display: none;
 }
 .chip:hover { color: var(--text); border-color: var(--aqua); }
 .chip[aria-pressed="true"] {
@@ -471,17 +475,15 @@ kbd {
 .card {
   width: min(360px, 100%);
   max-height: 100%;
-  overflow: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
+  overflow: hidden;
+  scrollbar-width: none;
   background: rgba(5, 9, 15, 0.97);
   border: 1px solid var(--line);
   padding: 0 0 15px;
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.8);
   position: relative;
 }
-.card::-webkit-scrollbar { width: 6px; }
-.card::-webkit-scrollbar-thumb { background: var(--line); }
+.card::-webkit-scrollbar { display: none; }
 .card[hidden] { display: none; }
 /* sits inside the box so it does not trip the card's own scrollbar */
 .card::before { inset: 0; opacity: calc(0.4 + var(--beat) * 0.4); }
@@ -652,21 +654,31 @@ input[type="range"]::-moz-range-thumb {
   .touch {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: 6px;
+    gap: 8px;
     flex: none;
+    padding: 8px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
   }
   .tbtn {
     font-family: var(--pixel);
     font-size: 13px;
-    padding: 14px 0 11px;
+    padding: 16px 6px;
+    min-height: 48px;
     color: var(--text);
     background: var(--panel);
-    border: 1px solid var(--line);
+    border: 2px solid var(--line);
+    border-radius: 6px;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+    font-weight: bold;
+    transition: all 80ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    cursor: pointer;
+    active: immediate;
   }
-  .tbtn.is-down { background: #10202e; border-color: var(--aqua); }
+  .tbtn:active { transform: scale(0.95); background: #10202e; border-color: var(--aqua); box-shadow: 0 0 10px rgba(16, 220, 245, 0.4); }
+  .tbtn.is-down { background: #10202e; border-color: var(--aqua); transform: scale(0.95); }
   .tbtn-wide { grid-column: 1 / -1; }
   .rail-right .keys { display: none; }
 }
@@ -684,9 +696,9 @@ input[type="range"]::-moz-range-thumb {
 /* phones, stack the hud above and below the well instead of beside it */
 @media (max-width: 700px), (max-height: 560px) {
   .app {
-    padding: 7px 7px 6px;
-    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+    padding: 7px 7px calc(80px + env(safe-area-inset-bottom));
     gap: 6px;
+    overflow: hidden;
   }
 
   .topbar { padding-bottom: 7px; }
@@ -696,6 +708,7 @@ input[type="range"]::-moz-range-thumb {
   .brand h1 { font-size: 14px; }
   .topbar-actions { gap: 4px; }
   .chip { font-size: 10px; padding: 7px 7px 5px; }
+  .chip-options { display: inline-flex; }
 
   .stage {
     display: grid;
@@ -767,8 +780,9 @@ input[type="range"]::-moz-range-thumb {
   .stats { padding: 4px 7px 5px; }
   .stat b { font-size: 11px; }
   .stat-lead b { font-size: 12px; }
-  .touch { grid-template-columns: repeat(7, 1fr); }
-  .tbtn { padding: 9px 0 7px; font-size: 12px; }
+  .app { padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+  .touch { grid-template-columns: repeat(7, 1fr); gap: 6px; padding: 6px; }
+  .tbtn { padding: 12px 4px; min-height: 40px; font-size: 11px; }
   .tbtn-wide { grid-column: auto; }
   .card { max-height: 100%; }
   .lede { display: none; }
