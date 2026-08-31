@@ -101,9 +101,16 @@ body::after {
   flex: none;
   padding-bottom: 9px;
   border-bottom: 1px solid var(--line-soft);
+  max-width: 100%;
 }
 
-.brand { display: flex; align-items: center; gap: 12px; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
 
 .brand-logo {
   width: 46px;
@@ -470,23 +477,58 @@ kbd {
 
 .card {
   width: min(360px, 100%);
-  max-height: 100%;
-  overflow: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
+  max-height: min(78vh, 620px);
+  overflow: hidden;
+  scrollbar-width: none;
   background: rgba(5, 9, 15, 0.97);
   border: 1px solid var(--line);
   padding: 0 0 15px;
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.8);
   position: relative;
 }
-.card::-webkit-scrollbar { width: 6px; }
-.card::-webkit-scrollbar-thumb { background: var(--line); }
+.card::-webkit-scrollbar { display: none; }
 .card[hidden] { display: none; }
 /* sits inside the box so it does not trip the card's own scrollbar */
 .card::before { inset: 0; opacity: calc(0.4 + var(--beat) * 0.4); }
 
-.card-body { padding: 14px 16px 0; }
+.card-body {
+  padding: 14px 16px 0;
+  max-height: calc(min(78vh, 620px) - 10px);
+  overflow: hidden;
+}
+
+.card-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: var(--panel);
+  color: var(--aqua);
+  border: 2px solid var(--aqua);
+  font-family: var(--pixel);
+  font-size: 18px;
+  line-height: 1;
+  font-weight: bold;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+  z-index: 10;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--aqua) 30%, transparent);
+}
+.card-close:hover { 
+  background: var(--aqua);
+  color: var(--ink);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--aqua) 50%, transparent);
+}
+.card-close:active { 
+  background: var(--mint);
+  border-color: var(--mint);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--mint) 40%, transparent);
+}
 
 .eyebrow { margin: 0 0 7px; font-size: 10px; color: var(--aqua); }
 .eyebrow-warn { color: var(--danger); }
@@ -648,12 +690,14 @@ input[type="range"]::-moz-range-thumb {
 /* touch pad */
 .touch { display: none; }
 
-@media (pointer: coarse) {
+@media (pointer: coarse), (max-width: 700px), (max-height: 560px) {
   .touch {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 6px;
     flex: none;
+    width: 100%;
+    margin-top: auto;
   }
   .tbtn {
     font-family: var(--pixel);
@@ -687,15 +731,64 @@ input[type="range"]::-moz-range-thumb {
     padding: 7px 7px 6px;
     padding-bottom: calc(6px + env(safe-area-inset-bottom));
     gap: 6px;
+    width: 100vw;
+    height: 100vh;
+    transform: none;
   }
 
-  .topbar { padding-bottom: 7px; }
-  .brand { gap: 8px; }
+  .topbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 7px;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+  .brand {
+    gap: 8px;
+    min-width: 0;
+    flex: none;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+  }
+  .brand-text {
+    min-width: 0;
+    overflow: hidden;
+    flex: 1 1 auto;
+  }
   .brand-sub { display: none; }
-  .brand-logo { width: 30px; height: 30px; }
-  .brand h1 { font-size: 14px; }
-  .topbar-actions { gap: 4px; }
-  .chip { font-size: 10px; padding: 7px 7px 5px; }
+  .brand-logo { width: 28px; height: 28px; flex: none; }
+  .brand h1 {
+    display: block;
+    font-size: clamp(9px, 3vw, 12px);
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.02em;
+    max-width: 100%;
+    flex: 1 1 auto;
+  }
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
+  }
+  .chip {
+    font-size: 9px;
+    padding: 7px 6px 5px;
+    white-space: nowrap;
+    flex: 1 1 0;
+    min-width: 0;
+  }
 
   .stage {
     display: grid;
@@ -707,6 +800,8 @@ input[type="range"]::-moz-range-thumb {
       "board board"
       "stats stats";
     gap: 6px;
+    min-height: 0;
+    overflow: hidden;
   }
   .rail { display: contents; }
   .panel-hold { grid-area: hold; }
@@ -741,12 +836,27 @@ input[type="range"]::-moz-range-thumb {
   .stat-stage b { font-size: 10px; }
 
   .overlay { padding: 8px; }
-  .card { width: 100%; }
-  .card-body { padding: 12px 13px 0; }
-  .card h2 { font-size: 17px; }
-  .lede { line-height: 1.7; margin-bottom: 12px; }
+  .card {
+    width: 100%;
+    max-height: min(50vh, 350px);
+  }
+  .card-body {
+    padding: 10px 11px 0;
+    max-height: calc(min(50vh, 350px) - 10px);
+  }
+  .card h2 { font-size: 14px; }
+  .card-close { display: flex; }
+  .lede { line-height: 1.6; margin-bottom: 10px; font-size: 10px; }
   .lede-tight { display: none; }
-  .setting { grid-template-columns: 68px minmax(0, 1fr) 48px; gap: 8px; }
+  .setting { grid-template-columns: 60px minmax(0, 1fr) 45px; gap: 7px; font-size: 9px; }
+  .opt-group { margin-bottom: 10px; }
+  .opt-group h3 { font-size: 9px; margin: 0 0 5px; }
+  .opt { font-size: 10px; padding: 6px 7px 5px; }
+  .opt-row { gap: 4px; margin-bottom: 6px; }
+  .swatch { width: 30px; height: 22px; }
+  .btn { font-size: 12px; padding: 10px 12px 8px; }
+  .btn-quiet { font-size: 10px; padding: 7px 10px 6px; margin-top: 6px; }
+  .btn-small { font-size: 10px; padding: 7px 9px 6px; }
 }
 
 /* landscape phone, put the previews either side and flatten everything else */

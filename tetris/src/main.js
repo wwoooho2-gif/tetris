@@ -70,7 +70,6 @@ const settings = Object.assign(
     music: 35,              // Music volume (0-100)
     sfx: 70,                // Sound effects volume (0-100)
     das: 120,               // Delay Auto Shift in ms (keyboard repeat delay)
-    arr: 25,                // Auto Repeat Rate in ms (keyboard repeat rate)
     ghost: true,            // Show piece ghost/shadow
     grid: true,             // Show grid lines
     bubbles: true,          // Show particle effects
@@ -160,11 +159,15 @@ function applyDifficultySettings() {
 }
 
 function applySettings() {
+  const compactMobile = window.matchMedia('(max-width: 700px), (max-height: 560px)').matches;
+  const guiMin = compactMobile ? 60 : 80;
+  const guiMax = compactMobile ? 100 : 170;
+  settings.guiScale = Math.min(guiMax, Math.max(guiMin, Number(settings.guiScale) || guiMax));
+
   audio.setMusicVolume(settings.music / 100);
   audio.setSfxVolume(settings.sfx / 100);
   audio.toggleMusic(settings.musicOn);
   input.das = settings.das;
-  input.arr = settings.arr;
   bot.perBeat = settings.botBeat;
   applyDifficultySettings();
   game.autoplay = settings.autoplay;
@@ -174,18 +177,33 @@ function applySettings() {
   renderer.showBubbles = settings.bubbles;
   renderer.autoplay = settings.autoplay;
 
-  $('opt-music').value = settings.music;
-  $('opt-sfx').value = settings.sfx;
-  $('opt-das').value = settings.das;
-  $('opt-arr').value = settings.arr;
-  $('opt-bot').value = settings.botBeat;
-  $('opt-refresh').value = settings.refreshRate;
-  $('opt-gui-scale').value = settings.guiScale;
-  $('opt-ghost').checked = settings.ghost;
-  $('opt-grid').checked = settings.grid;
-  $('opt-bubbles').checked = settings.bubbles;
-  $('opt-stages').checked = settings.stages;
-  $('row-stage').hidden = !settings.stages;
+  const musicEl = $('opt-music');
+  const sfxEl = $('opt-sfx');
+  const dasEl = $('opt-das');
+  const botBeatEl = $('opt-bot');
+  const refreshEl = $('opt-refresh');
+  const guiScaleEl = $('opt-gui-scale');
+  const ghostEl = $('opt-ghost');
+  const gridEl = $('opt-grid');
+  const bubblesEl = $('opt-bubbles');
+  const stagesEl = $('opt-stages');
+  const rowStageEl = $('row-stage');
+
+  if (musicEl) musicEl.value = settings.music;
+  if (sfxEl) sfxEl.value = settings.sfx;
+  if (dasEl) dasEl.value = settings.das;
+  if (botBeatEl) botBeatEl.value = settings.botBeat;
+  if (refreshEl) refreshEl.value = settings.refreshRate;
+  if (guiScaleEl) {
+    guiScaleEl.min = String(guiMin);
+    guiScaleEl.max = String(guiMax);
+    guiScaleEl.value = settings.guiScale;
+  }
+  if (ghostEl) ghostEl.checked = settings.ghost;
+  if (gridEl) gridEl.checked = settings.grid;
+  if (bubblesEl) bubblesEl.checked = settings.bubbles;
+  if (stagesEl) stagesEl.checked = settings.stages;
+  if (rowStageEl) rowStageEl.hidden = !settings.stages;
   const controlsPanel = document.getElementById('controls-panel');
   const controlsToggle = document.getElementById('controls-toggle');
   if (controlsPanel) {
@@ -194,14 +212,23 @@ function applySettings() {
   if (controlsToggle) {
     controlsToggle.setAttribute('aria-expanded', String(settings.controlsVisible));
   }
-  $('out-music').textContent = `${settings.music}%`;
-  $('out-sfx').textContent = `${settings.sfx}%`;
-  $('out-das').textContent = `${settings.das} ms`;
-  $('out-arr').textContent = settings.arr === 0 ? 'instant' : `${settings.arr} ms`;
-  $('out-bot').textContent = `${settings.botBeat}/beat`;
-  $('out-refresh').textContent = `${settings.refreshRate} Hz`;
-  $('out-gui-scale').textContent = `${settings.guiScale}%`;
-  document.documentElement.style.setProperty('--ui-scale', String(Math.min(1.7, Math.max(0.8, settings.guiScale / 100))));
+  const musicOut = $('out-music');
+  const sfxOut = $('out-sfx');
+  const dasOut = $('out-das');
+  const botOut = $('out-bot');
+  const refreshOut = $('out-refresh');
+  const guiScaleOut = $('out-gui-scale');
+
+  if (musicOut) musicOut.textContent = `${settings.music}%`;
+  if (sfxOut) sfxOut.textContent = `${settings.sfx}%`;
+  if (dasOut) dasOut.textContent = `${settings.das} ms`;
+  if (botOut) botOut.textContent = `${settings.botBeat}/beat`;
+  if (refreshOut) refreshOut.textContent = `${settings.refreshRate} Hz`;
+  if (guiScaleOut) guiScaleOut.textContent = `${settings.guiScale}%`;
+  const uiScale = compactMobile
+    ? Math.min(1, Math.max(0.6, settings.guiScale / 100))
+    : Math.min(1.7, Math.max(0.8, settings.guiScale / 100));
+  document.documentElement.style.setProperty('--ui-scale', String(uiScale));
   const win = isElectronRuntime && electronApi && electronApi.remote ? electronApi.remote.getCurrentWindow() : null;
   if (win && typeof win.isFullScreen === 'function') {
     const shouldFull = Boolean(settings.fullscreen);
@@ -572,6 +599,13 @@ overlay.addEventListener('click', (e) => {
   } else if (action === 'back') showScreen(themeReturn);
 });
 
+// Close button handler for mobile
+overlay.addEventListener('click', (e) => {
+  if (e.target.closest('.card-close')) {
+    showScreen(null);
+  }
+});
+
 // option pickers are built from the data so the markup stays short
 function buildPicker(rowId, entries, onPick, render) {
   const row = $(rowId);
@@ -695,6 +729,24 @@ if (soundBtn) {
   });
 }
 
+const settingsBtn = $('btn-settings');
+if (settingsBtn) {
+  settingsBtn.addEventListener('click', () => {
+    audio.unlock();
+    if (game.state === State.Playing) {
+      themeReturn = 'paused';
+      game.pause(true);
+      showScreen('paused');
+      audio.setMuffled(true);
+    } else if (game.state === State.Paused) {
+      showScreen('paused');
+    } else {
+      themeReturn = 'ready';
+      showScreen('paused');
+    }
+  });
+}
+
 const botBtn = $('btn-bot');
 if (botBtn) {
   botBtn.addEventListener('click', () => {
@@ -737,7 +789,6 @@ const bindRange = (id, key) => {
 bindRange('opt-music', 'music');
 bindRange('opt-sfx', 'sfx');
 bindRange('opt-das', 'das');
-bindRange('opt-arr', 'arr');
 bindRange('opt-bot', 'botBeat');
 bindRange('opt-refresh', 'refreshRate');
 bindRange('opt-gui-scale', 'guiScale');
