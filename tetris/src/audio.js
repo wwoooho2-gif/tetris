@@ -143,6 +143,55 @@ const HARBOR = [
   bar('E', [['E5', 8], ['B4', 8]])
 ];
 
+// Pulse - steady hypnotic rhythm for focused play
+const PULSE = [
+  bar('Am', [['A4', 4], ['E5', 4], ['A5', 4], ['E5', 4]]),
+  bar('Am', [['G4', 4], ['D5', 4], ['G5', 4], ['D5', 4]]),
+  bar('F', [['F4', 4], ['C5', 4], ['F5', 4], ['C5', 4]]),
+  bar('C', [['C4', 4], ['G4', 4], ['C5', 4], ['G4', 4]]),
+  bar('Am', [['A4', 2], ['C5', 2], ['E5', 2], ['A5', 2]]),
+  bar('F', [['F4', 2], ['A4', 2], ['C5', 2], ['F5', 2]]),
+  bar('G', [['G4', 2], ['B4', 2], ['D5', 2], ['G5', 2]]),
+  bar('Am', [['E5', 8], ['C5', 8]])
+];
+
+// Arcade - fast-paced retro Tetris feel
+const ARCADE = [
+  bar('C', [['C5', 2], ['G4', 2], ['C5', 2], ['E5', 2], ['G5', 2], ['E5', 2], ['C5', 2], ['G4', 2]]),
+  bar('F', [['F4', 2], ['C4', 2], ['F4', 2], ['A4', 2], ['C5', 2], ['A4', 2], ['F4', 2], ['C4', 2]]),
+  bar('G', [['G4', 2], ['D4', 2], ['G4', 2], ['B4', 2], ['D5', 2], ['B4', 2], ['G4', 2], ['D4', 2]]),
+  bar('E', [['E4', 2], ['B3', 2], ['E4', 2], ['G#4', 2], ['B4', 2], ['G#4', 2], ['E4', 2], ['B3', 2]]),
+  bar('Am', [['A4', 4], ['E5', 2], ['A5', 2], ['G5', 4], ['E5', 4]]),
+  bar('Dm', [['D4', 4], ['A4', 2], ['D5', 2], ['F5', 4], ['D5', 4]]),
+  bar('G', [['G4', 4], ['D5', 2], ['G5', 2], ['F5', 4], ['D5', 4]]),
+  bar('C', [['C5', 8], ['G4', 8]])
+];
+
+// Trench - extreme dark aggressive theme for extreme difficulty
+const TRENCH = [
+  bar('Em', [['E4', 2], ['B4', 2], ['E5', 2], ['G5', 2], ['B5', 2], ['G5', 2], ['E5', 2], ['B4', 2]]),
+  bar('Am', [['A4', 2], ['E5', 2], ['A5', 2], ['C6', 2], ['A5', 2], ['E5', 2], ['A4', 2], ['E4', 2]]),
+  bar('Dm', [['D4', 2], ['A4', 2], ['D5', 2], ['F5', 2], ['A5', 2], ['F5', 2], ['D5', 2], ['A4', 2]]),
+  bar('G', [['G4', 2], ['D5', 2], ['G5', 2], ['B5', 2], ['D6', 2], ['B5', 2], ['G5', 2], ['D5', 2]]),
+  bar('Em', [['E5', 4], ['B5', 2], ['G5', 2], ['E5', 4], ['B4', 4]]),
+  bar('Am', [['A4', 4], ['E5', 2], ['C5', 2], ['A4', 6], [null, 2]]),
+  bar('Dm', [['D5', 4], ['A5', 2], ['F5', 2], ['D5', 4], ['A4', 4]]),
+  bar('G', [['G5', 4], ['D5', 2], ['B4', 2], ['G4', 4], ['E4', 4]])
+];
+
+// Ambient - chill zen mode for relaxed gameplay
+const AMBIENT = [
+  bar('Am', [['A4', 4], [null, 4], ['E5', 4], [null, 4]]),
+  bar('F', [['F4', 4], [null, 4], ['C5', 4], [null, 4]]),
+  bar('C', [['C4', 4], [null, 4], ['G4', 4], [null, 4]]),
+  bar('G', [['G3', 4], [null, 4], ['B3', 4], [null, 4]]),
+  bar('Am', [['A4', 2], ['E5', 2], ['C5', 2], ['A4', 2]]),
+  bar('F', [['F4', 2], ['C5', 2], ['A4', 2], ['F4', 2]]),
+  bar('G', [['G4', 2], ['D5', 2], ['B4', 2], ['G4', 2]]),
+  bar('Am', [['E5', 8], [null, 8]])
+];
+
+
 export const MUSIC_THEMES = {
   dockside: {
     name: 'Dockside',
@@ -214,6 +263,42 @@ export const MUSIC_THEMES = {
     lead: { type: 'sine', gain: 0.13, octave: true, sustain: 1.4 },
     bass: { type: 'triangle', gain: 0.18, pattern: 'hold' },
     kick: true,
+    hat: false
+  },
+  pulse: {
+    name: 'Pulse',
+    bpm: 140,
+    bars: PULSE,
+    lead: { type: 'square', gain: 0.095, octave: true, sustain: 0.85 },
+    bass: { type: 'square', gain: 0.15, pattern: 'drive' },
+    kick: true,
+    hat: true
+  },
+  arcade: {
+    name: 'Arcade',
+    bpm: 176,
+    bars: ARCADE,
+    lead: { type: 'square', gain: 0.11, octave: true, sustain: 0.7 },
+    bass: { type: 'square', gain: 0.16, pattern: 'drive' },
+    kick: true,
+    hat: true
+  },
+  trench: {
+    name: 'Trench',
+    bpm: 190,
+    bars: TRENCH,
+    lead: { type: 'sawtooth', gain: 0.12, octave: false, sustain: 0.6 },
+    bass: { type: 'square', gain: 0.18, pattern: 'drive' },
+    kick: true,
+    hat: true
+  },
+  ambient: {
+    name: 'Ambient',
+    bpm: 70,
+    bars: AMBIENT,
+    lead: { type: 'sine', gain: 0.08, octave: false, sustain: 2.8 },
+    bass: { type: 'sine', gain: 0.12, pattern: 'hold' },
+    kick: false,
     hat: false
   }
 };

@@ -17,7 +17,8 @@ export const State = {
   Clearing: 'clearing', // Rows are being cleared
   Entry: 'entry',       // Piece entering play area
   Paused: 'paused',     // Game paused
-  Over: 'over'          // Game over state
+  Over: 'over',         // Game over state
+  Beaten: 'beaten'      // Game beaten at level 9999
 };
 
 // ============================================================
@@ -29,7 +30,7 @@ const MAX_LOCK_RESETS = 15;  // Max times lock delay can reset
 const SOFT_INTERVAL = 1 / 35; // Gravity acceleration interval
 const CLEAR_TIME = 0.3;      // Seconds to display clearing animation
 const ENTRY_DELAY = 0.08;    // Seconds for piece entry animation
-const MAX_LEVEL = 20;        // Maximum game level
+const MAX_LEVEL = 9999;      // Maximum game level (9999 = beaten game)
 
 const CLEAR_NAME = ['', 'SINGLE', 'DOUBLE', 'TRIPLE', 'TETRIS'];
 
@@ -102,7 +103,7 @@ export class Game {
   }
 
   pullBag() {
-    if (this.bag.length === 0) this.bag = shuffledBag(this.difficulty === 'hard');
+    if (this.bag.length === 0) this.bag = shuffledBag(this.difficulty);
     return this.bag.pop();
   }
 
@@ -151,9 +152,23 @@ export class Game {
   }
 
   gravityInterval() {
-    const l = Math.min(this.level, MAX_LEVEL);
-    const base = Math.pow(0.8 - (l - 1) * 0.007, l - 1);
-    return Math.max(0.008, (base / this.stageSpeed) / this.difficultySpeedMultiplier);
+    const l = this.level;
+    let base;
+    
+    // Continuous exponential acceleration formula for all levels
+    // Level 1: 0.8 (slow)
+    // Level 20: very fast
+    // Level 9999: extremely fast
+    const decay = 0.8 - (Math.min(l, 100) - 1) * 0.007; // Reaches minimum at level ~100
+    base = Math.pow(decay, Math.max(l - 1, 0));
+    
+    // For levels beyond 100, add extra exponential boost
+    if (l > 100) {
+      const extraBoost = Math.pow(0.95, l - 100); // Continues to accelerate past level 100
+      base *= extraBoost;
+    }
+    
+    return Math.max(0.0001, (base / this.stageSpeed) / this.difficultySpeedMultiplier);
   }
 
   get stageSpeed() {
@@ -349,6 +364,13 @@ export class Game {
     const nextLevel = Math.min(MAX_LEVEL, Math.floor(this.lines / 10) + 1);
     const levelled = nextLevel > this.level;
     this.level = nextLevel;
+    
+    // Check if player has beaten the game at max level
+    if (this.level >= MAX_LEVEL && this.state === State.Playing) {
+      this.state = State.Beaten;
+      this.emit('beaten', { level: this.level, score: this.score });
+      return;
+    }
 
     const nextStage = this.stagesOn ? stageFor(this.lines) : 0;
     const staged = nextStage > this.stage;

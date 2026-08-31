@@ -44,11 +44,32 @@ function initDiscordRpc() {
       });
     });
 
-    rpcClient.login({ clientId: DISCORD_APP_ID }).catch((error) => {
-      console.warn('Discord RPC unavailable:', error.message);
+    rpcClient.on('disconnected', () => {
+      rpcClient = null;
     });
+
+    rpcClient.on('error', (error) => {
+      console.warn('Discord RPC error:', error && error.message ? error.message : error);
+      rpcClient = null;
+    });
+
+    rpcClient.login({ clientId: DISCORD_APP_ID })
+      .then(() => {
+        setDiscordActivity({
+          details: 'Playing FISH THAT STUFF',
+          state: 'In the docks',
+          largeImageKey: DISCORD_LARGE_IMAGE,
+          largeImageText: DISCORD_LARGE_TEXT
+        });
+      })
+      .catch((error) => {
+        if (error && error.message && error.message !== 'connection closed') {
+          console.warn('Discord RPC unavailable:', error.message);
+        }
+        rpcClient = null;
+      });
   } catch (error) {
-    console.warn('Discord RPC not available:', error.message);
+    console.warn('Discord RPC not available:', error && error.message ? error.message : error);
   }
 }
 

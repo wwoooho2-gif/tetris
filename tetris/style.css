@@ -18,6 +18,10 @@
   --beat: 0;
   --flash: 0;
   --pulse: 0;
+  --level-intensity: 0;
+  --bg-color-1: #40dcf5;
+  --bg-color-2: #6b2fb5;
+  --bg-color-3: #2b7dff;
 }
 
 * { box-sizing: border-box; }
@@ -26,9 +30,9 @@ html, body { height: 100%; margin: 0; }
 
 body {
   background:
-    radial-gradient(900px 520px at 50% -14%, color-mix(in srgb, var(--aqua) calc(12% + var(--beat) * 18%), transparent), transparent 68%),
-    radial-gradient(760px 620px at 88% 112%, color-mix(in srgb, var(--grape) calc(24% + var(--flash) * 26%), transparent), transparent 62%),
-    radial-gradient(620px 520px at 8% 96%, color-mix(in srgb, var(--blue) calc(15% + var(--beat) * 18%), transparent), transparent 64%),
+    radial-gradient(900px 520px at 50% -14%, color-mix(in srgb, var(--bg-color-1) calc(12% + var(--beat) * 18% + var(--level-intensity) * 25%), transparent), transparent 68%),
+    radial-gradient(760px 620px at 88% 112%, color-mix(in srgb, var(--bg-color-2) calc(24% + var(--flash) * 26% + var(--level-intensity) * 30%), transparent), transparent 62%),
+    radial-gradient(620px 520px at 8% 96%, color-mix(in srgb, var(--bg-color-3) calc(15% + var(--beat) * 18% + var(--level-intensity) * 25%), transparent), transparent 64%),
     var(--ink);
   color: var(--text);
   font-family: var(--pixel);
@@ -50,8 +54,8 @@ body {
   background-size: cover;
   pointer-events: none;
   transition: opacity .2s, transform .18s ease-out, filter .18s ease-out;
-  transform: scale(calc(1 + var(--beat) * 0.05 + var(--flash) * 0.04));
-  filter: saturate(calc(1 + var(--beat) * 0.85 + var(--flash) * 0.7)) brightness(calc(1 + var(--beat) * 0.3 + var(--flash) * 0.6));
+  transform: scale(calc(1 + var(--beat) * 0.05 + var(--flash) * 0.04 + var(--level-intensity) * 0.1));
+  filter: saturate(calc(1 + var(--beat) * 0.85 + var(--flash) * 0.7 + var(--level-intensity) * 0.8)) brightness(calc(1 + var(--beat) * 0.3 + var(--flash) * 0.6 + var(--level-intensity) * 0.4));
 }
 
 /* graffiti wash behind everything */
@@ -61,11 +65,11 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(340px 220px at 18% 24%, color-mix(in srgb, var(--grape) calc(26% + var(--beat) * 28%), transparent), transparent 70%),
-    radial-gradient(300px 260px at 82% 70%, color-mix(in srgb, var(--blue) calc(18% + var(--flash) * 30%), transparent), transparent 72%),
-    radial-gradient(260px 200px at 62% 12%, color-mix(in srgb, var(--mint) calc(11% + var(--beat) * 22%), transparent), transparent 70%);
-  filter: blur(calc(8px + var(--beat) * 6px + var(--flash) * 2px));
-  transform: scale(calc(1 + var(--beat) * 0.03));
+    radial-gradient(340px 220px at 18% 24%, color-mix(in srgb, var(--grape) calc(26% + var(--beat) * 28% + var(--level-intensity) * 40%), transparent), transparent 70%),
+    radial-gradient(300px 260px at 82% 70%, color-mix(in srgb, var(--blue) calc(18% + var(--flash) * 30% + var(--level-intensity) * 35%), transparent), transparent 72%),
+    radial-gradient(260px 200px at 62% 12%, color-mix(in srgb, var(--mint) calc(11% + var(--beat) * 22% + var(--level-intensity) * 30%), transparent), transparent 70%);
+  filter: blur(calc(8px + var(--beat) * 6px + var(--flash) * 2px + var(--level-intensity) * 8px));
+  transform: scale(calc(1 + var(--beat) * 0.03 + var(--level-intensity) * 0.08));
   transition: filter .12s ease-out, transform .12s ease-out;
 }
 
@@ -336,43 +340,55 @@ body::after {
 .difficulty-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  padding: 0;
 }
 
 .difficulty-panel h2 {
-  margin: 0 0 6px;
-  font-size: 11px;
+  margin: 0;
+  font-size: 10px;
   font-weight: 400;
-  color: var(--aqua);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .difficulty-buttons {
-  display: flex;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
 }
 
 .difficulty-btn {
-  flex: 1;
   font-family: var(--pixel);
-  font-size: 9px;
-  padding: 6px 0 4px;
+  font-size: 8px;
+  padding: 5px 0 3px;
   color: var(--muted);
-  background: var(--panel);
+  background: rgba(9, 12, 18, 0.6);
   border: 1px solid var(--line);
   cursor: pointer;
   transition: all 0.12s;
+  border-radius: 2px;
 }
 
 .difficulty-btn:hover {
   color: var(--text);
   border-color: var(--aqua);
+  background: rgba(9, 12, 18, 0.9);
 }
 
 .difficulty-btn[aria-pressed="true"] {
   color: #03202c;
   background: var(--aqua);
   border-color: var(--aqua);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--aqua) 40%, transparent);
+  box-shadow: inset 0 0 8px rgba(64, 220, 245, 0.2);
+}
+
+.difficulty-btn#btn-diff-extreme[aria-pressed="true"] {
+  background: #e63946;
+  border-color: #e63946;
+  color: #fff;
+  box-shadow: inset 0 0 8px rgba(230, 57, 70, 0.3);
 }
 
 .streaks { display: flex; flex-direction: column; gap: 5px; }
@@ -532,6 +548,7 @@ kbd {
 
 .eyebrow { margin: 0 0 7px; font-size: 10px; color: var(--aqua); }
 .eyebrow-warn { color: var(--danger); }
+.eyebrow-victory { color: var(--mint); font-size: 14px; font-weight: bold; }
 
 .card h2 { margin: 0 0 9px; font-size: 20px; font-weight: 400; line-height: 1.2; }
 
@@ -794,9 +811,11 @@ input[type="range"]::-moz-range-thumb {
     display: grid;
     max-width: none;
     grid-template-columns: auto minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
     grid-template-areas:
       "hold next"
+      "diff next"
+      "diff next"
       "board board"
       "stats stats";
     gap: 6px;
@@ -806,6 +825,7 @@ input[type="range"]::-moz-range-thumb {
   .rail { display: contents; }
   .panel-hold { grid-area: hold; }
   .panel-next { grid-area: next; overflow: hidden; }
+  .difficulty-panel { grid-area: diff; }
   .board-wrap { grid-area: board; min-height: 0; width: 100%; }
   .stats { grid-area: stats; }
   .keys, .streaks, .stat-extra { display: none; }
@@ -839,13 +859,22 @@ input[type="range"]::-moz-range-thumb {
   .card {
     width: 100%;
     max-height: min(50vh, 350px);
+    position: relative;
   }
   .card-body {
     padding: 10px 11px 0;
     max-height: calc(min(50vh, 350px) - 10px);
   }
   .card h2 { font-size: 14px; }
-  .card-close { display: flex; }
+  .card-close { 
+    display: flex; 
+    width: 32px;
+    height: 32px;
+    top: 6px;
+    right: 6px;
+    z-index: 20;
+    font-size: 20px;
+  }
   .lede { line-height: 1.6; margin-bottom: 10px; font-size: 10px; }
   .lede-tight { display: none; }
   .setting { grid-template-columns: 60px minmax(0, 1fr) 45px; gap: 7px; font-size: 9px; }

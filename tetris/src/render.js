@@ -28,7 +28,7 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 }
 
 export class Renderer {
-  constructor(boardCanvas, holdCanvas, nextCanvas) {
+  constructor(boardCanvas, holdCanvas, nextCanvas, colorTheme = COLORS) {
     this.board = boardCanvas;
     this.bctx = boardCanvas.getContext('2d');
     this.hold = holdCanvas;
@@ -39,6 +39,7 @@ export class Renderer {
     this.hctx.gid = 'h';
     this.nctx.gid = 'n';
     this.gradients = new Map();
+    this.colorTheme = colorTheme;
     this.cell = 30;
     this.dpr = 1;
     this.previewCell = 19;
@@ -100,11 +101,16 @@ export class Renderer {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
+  setColorTheme(colorTheme) {
+    this.colorTheme = colorTheme;
+    this.gradients.clear(); // Clear gradient cache to regenerate with new colors
+  }
+
   gradient(ctx, key, size) {
     const id = `${ctx.gid}:${key}:${size}`;
     let g = this.gradients.get(id);
     if (!g) {
-      const c = COLORS[key];
+      const c = this.colorTheme[key];
       g = ctx.createLinearGradient(0, 0, size * 0.35, size);
       g.addColorStop(0, c.light);
       g.addColorStop(0.42, c.base);
@@ -115,7 +121,7 @@ export class Renderer {
   }
 
   block(ctx, px, py, size, key, alpha = 1, scale = 1) {
-    const c = COLORS[key];
+    const c = this.colorTheme[key];
     const s = size * scale;
     const off = (size - s) / 2;
     ctx.save();
@@ -482,6 +488,7 @@ export class Renderer {
   }
 
   drawPreview(ctx, key, x, y, slot, cell, dim = false) {
+    if (!key || !PIECES[key]) return;
     const piece = PIECES[key];
     const cells = piece.cells[0];
     const xs = cells.map((c) => c[0]);
@@ -505,7 +512,7 @@ export class Renderer {
     const hw = this.hold.width / this.dpr;
     const hh = this.hold.height / this.dpr;
     hctx.clearRect(0, 0, hw, hh);
-    if (game.hold) this.drawPreview(hctx, game.hold, 0, 0, { w: hw, h: hh }, cell, !game.canHold);
+    if (game.hold && PIECES[game.hold]) this.drawPreview(hctx, game.hold, 0, 0, { w: hw, h: hh }, cell, !game.canHold);
 
     const nctx = this.nctx;
     const nw = this.next.width / this.dpr;
@@ -513,13 +520,15 @@ export class Renderer {
     nctx.clearRect(0, 0, nw, nh);
     const count = Math.min(5, game.queue.length);
     for (let i = 0; i < count; i++) {
+      const nextKey = game.queue[i];
+      if (!nextKey || !PIECES[nextKey]) continue;
       const scale = i === 0 ? 1 : 0.84;
       if (this.nextRow) {
         const slot = nw / 5;
-        this.drawPreview(nctx, game.queue[i], i * slot, 0, { w: slot, h: nh }, cell * scale, false);
+        this.drawPreview(nctx, nextKey, i * slot, 0, { w: slot, h: nh }, cell * scale, false);
       } else {
         const slot = nh / 5;
-        this.drawPreview(nctx, game.queue[i], 0, i * slot, { w: nw, h: slot }, cell * scale, false);
+        this.drawPreview(nctx, nextKey, 0, i * slot, { w: nw, h: slot }, cell * scale, false);
       }
     }
   }

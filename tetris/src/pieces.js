@@ -11,11 +11,14 @@ const BASE = {
   S: [[0, 1, 1], [1, 1, 0], [0, 0, 0]],
   T: [[0, 1, 0], [1, 1, 1], [0, 0, 0]],
   Z: [[1, 1, 0], [0, 1, 1], [0, 0, 0]],
-  P: [[0, 1, 0], [1, 1, 1], [0, 1, 0]]  // Plus shape for hard mode
+  P: [[0, 1, 0], [1, 1, 1], [0, 1, 0]],  // Plus shape for hard mode
+  X: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],  // Slash shape for extreme mode
+  Q: [[0, 0, 1], [0, 1, 0], [1, 0, 0]]   // Backslash shape for extreme mode
 };
 
 export const PIECE_KEYS = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
 export const PIECE_KEYS_HARD = ['I', 'J', 'L', 'O', 'S', 'T', 'Z', 'P'];  // Hard mode includes plus
+export const PIECE_KEYS_EXTREME = ['I', 'J', 'L', 'O', 'S', 'T', 'Z', 'P', 'X', 'Q'];  // Extreme mode includes plus, slash, and backslash
 
 export const COLORS = {
   I: { light: '#a9fff0', base: '#35f0c8', dark: '#0e7d68' },
@@ -25,8 +28,78 @@ export const COLORS = {
   S: { light: '#a6f5c6', base: '#3ddc84', dark: '#14713f' },
   T: { light: '#d9b4ff', base: '#a05cf0', dark: '#4d1f8c' },
   Z: { light: '#ffb3c6', base: '#ff5b7f', dark: '#8c1f38' },
-  P: { light: '#ff9ff0', base: '#ff00ff', dark: '#8c0098' }  // Bright magenta for plus
+  P: { light: '#ff9ff0', base: '#ff00ff', dark: '#8c0098' },  // Bright magenta for plus
+  X: { light: '#ffff99', base: '#ffff00', dark: '#999900' },  // Bright yellow for slash
+  Q: { light: '#ff9999', base: '#ff3333', dark: '#cc0000' }   // Bright red for backslash
 };
+
+// Color theme presets for pieces
+export const COLOR_THEMES = {
+  default: {
+    I: { light: '#a9fff0', base: '#35f0c8', dark: '#0e7d68' },
+    J: { light: '#9dc2ff', base: '#2b7dff', dark: '#123f8c' },
+    L: { light: '#ffd0a0', base: '#ff9a3c', dark: '#8f4a10' },
+    O: { light: '#fff2a8', base: '#ffd84d', dark: '#8f7212' },
+    S: { light: '#a6f5c6', base: '#3ddc84', dark: '#14713f' },
+    T: { light: '#d9b4ff', base: '#a05cf0', dark: '#4d1f8c' },
+    Z: { light: '#ffb3c6', base: '#ff5b7f', dark: '#8c1f38' },
+    P: { light: '#ff9ff0', base: '#ff00ff', dark: '#8c0098' },
+    X: { light: '#ffff99', base: '#ffff00', dark: '#999900' },
+    Q: { light: '#ff9999', base: '#ff3333', dark: '#cc0000' }
+  },
+  neon: {
+    I: { light: '#00ffff', base: '#00ff00', dark: '#00aa00' },
+    J: { light: '#ff00ff', base: '#ff0080', dark: '#aa0055' },
+    L: { light: '#ffff00', base: '#ff8800', dark: '#aa5500' },
+    O: { light: '#ff00ff', base: '#ff00ff', dark: '#aa00aa' },
+    S: { light: '#00ff00', base: '#00ff80', dark: '#00aa55' },
+    T: { light: '#ff0080', base: '#ff0000', dark: '#aa0000' },
+    Z: { light: '#00ffff', base: '#0080ff', dark: '#0055aa' },
+    P: { light: '#ffff00', base: '#ffff00', dark: '#aaaa00' },
+    X: { light: '#ff00ff', base: '#ff00ff', dark: '#aa00aa' },
+    Q: { light: '#ff99ff', base: '#ff00ff', dark: '#aa00aa' }
+  },
+  pastel: {
+    I: { light: '#b4e7f5', base: '#87ceeb', dark: '#5a9fbe' },
+    J: { light: '#dda0dd', base: '#ba55d3', dark: '#8b3ba8' },
+    L: { light: '#f0e68c', base: '#daa520', dark: '#b8860b' },
+    O: { light: '#ffd1dc', base: '#ffb6de', dark: '#cc8fa3' },
+    S: { light: '#98fb98', base: '#90ee90', dark: '#5fb55f' },
+    T: { light: '#ffc0cb', base: '#ff69b4', dark: '#cc4477' },
+    Z: { light: '#ffe4b5', base: '#ffa500', dark: '#cc8400' },
+    P: { light: '#e6b3ff', base: '#d580ff', dark: '#aa55cc' },
+    X: { light: '#ffffe0', base: '#fffacd', dark: '#cccc99' },
+    Q: { light: '#ffb3b3', base: '#ff9999', dark: '#cc6666' }
+  },
+  fire: {
+    I: { light: '#ff6600', base: '#ff3300', dark: '#cc2200' },
+    J: { light: '#ffaa00', base: '#ff7700', dark: '#cc6600' },
+    L: { light: '#ffdd00', base: '#ffbb00', dark: '#cc9900' },
+    O: { light: '#ff4400', base: '#ff2200', dark: '#cc1100' },
+    S: { light: '#ff9900', base: '#ff6600', dark: '#cc5500' },
+    T: { light: '#ffff00', base: '#ffdd00', dark: '#ccbb00' },
+    Z: { light: '#ff5500', base: '#ff3300', dark: '#cc2200' },
+    P: { light: '#ff0000', base: '#ff0000', dark: '#cc0000' },
+    X: { light: '#ffaa00', base: '#ff8800', dark: '#cc6600' },
+    Q: { light: '#ff2200', base: '#ff0000', dark: '#cc0000' }
+  },
+  ice: {
+    I: { light: '#e0ffff', base: '#b0ffff', dark: '#70ccff' },
+    J: { light: '#d0e8ff', base: '#a0d8ff', dark: '#6aadcc' },
+    L: { light: '#e8f0ff', base: '#c8e0ff', dark: '#8abfff' },
+    O: { light: '#f0f8ff', base: '#e0f0ff', dark: '#a8ccff' },
+    S: { light: '#d8f8ff', base: '#a8f0ff', dark: '#70cccc' },
+    T: { light: '#f0e8ff', base: '#d8d8ff', dark: '#a8a8ff' },
+    Z: { light: '#e8e8ff', base: '#c8c8ff', dark: '#9090ff' },
+    P: { light: '#d0f0ff', base: '#a0e8ff', dark: '#6accff' },
+    X: { light: '#f0f0ff', base: '#e0e0ff', dark: '#b0b0ff' },
+    Q: { light: '#e0d0ff', base: '#d0a8ff', dark: '#a070ff' }
+  }
+};
+
+export function getColorTheme(themeName = 'default') {
+  return COLOR_THEMES[themeName] || COLOR_THEMES.default;
+}
 
 function rotateCW(m) {
   const n = m.length;
@@ -48,7 +121,7 @@ function cellsOf(m) {
 }
 
 export const PIECES = {};
-const ALL_KEYS = ['I', 'J', 'L', 'O', 'S', 'T', 'Z', 'P'];
+const ALL_KEYS = ['I', 'J', 'L', 'O', 'S', 'T', 'Z', 'P', 'X', 'Q'];
 for (const key of ALL_KEYS) {
   const states = [BASE[key]];
   for (let i = 1; i < 4; i++) states.push(rotateCW(states[i - 1]));
@@ -97,8 +170,15 @@ export function kicks(key, from, to) {
   return table[`${from}${to}`] || [[0, 0]];
 }
 
-export function shuffledBag(isHardMode = false) {
-  const bag = (isHardMode ? PIECE_KEYS_HARD : PIECE_KEYS).slice();
+export function shuffledBag(difficultyMode = 'normal') {
+  let bag;
+  if (difficultyMode === 'extreme') {
+    bag = PIECE_KEYS_EXTREME.slice();
+  } else if (difficultyMode === 'hard') {
+    bag = PIECE_KEYS_HARD.slice();
+  } else {
+    bag = PIECE_KEYS.slice();
+  }
   for (let i = bag.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [bag[i], bag[j]] = [bag[j], bag[i]];

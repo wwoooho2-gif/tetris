@@ -176,7 +176,7 @@ export function planMove(game, learningBias = 0) {
 
 export class Bot {
   constructor() {
-    this.perBeat = 1;
+    this.perBeat = 0.5;  // Base speed for piece drops
     this.plan = null;
     this.serial = -1;
     this.timer = 0;
@@ -185,6 +185,27 @@ export class Bot {
     this.failureBias = 0;
     this.failures = 0;
     this.skill = 0;
+    
+    // Self-learning metrics
+    this.gameHistory = [];  // Track last N games
+    this.avgScore = 0;
+    this.avgLines = 0;
+    this.winRate = 0;  // % of games reaching level 5+
+    this.aggressionLevel = 1.0;  // 0.5 = defensive, 1.0 = balanced, 1.5 = aggressive
+    this.learningEnabled = true;
+  }
+
+  getStats() {
+    return {
+      skill: this.skill.toFixed(2),
+      failures: this.failures,
+      speed: this.perBeat.toFixed(2),
+      winRate: (this.winRate * 100).toFixed(0) + '%',
+      avgScore: Math.round(this.avgScore),
+      avgLines: Math.round(this.avgLines),
+      aggression: this.aggressionLevel.toFixed(2),
+      games: this.gameHistory.length
+    };
   }
 
   reset() {
@@ -193,27 +214,77 @@ export class Bot {
     this.aligned = false;
     this.tries = 0;
     this.timer = 0;
-    this.perBeat = Math.max(0.35, 1 - this.skill * 0.12);
+    this.perBeat = Math.max(0.35, 0.5 - this.skill * 0.08);
   }
 
-  recordFailure(score = 0, lines = 0) {
+  recordFailure(score = 0, lines = 0, level = 1) {
     this.failures += 1;
+    
+    // Record game result for learning
+    if (this.learningEnabled) {
+      const gameResult = {
+        score,
+        lines,
+        level,
+        timestamp: Date.now(),
+        success: level >= 5  // Consider it a win if level 5+
+      };
+      this.gameHistory.push(gameResult);
+      if (this.gameHistory.length > 20) this.gameHistory.shift();  // Keep last 20 games
+      
+      // Recalculate learning metrics
+      this.updateLearningMetrics();
+    }
+    
     const gain = 0.55 + Math.max(0, 80 - score) / 120 + Math.max(0, 20 - lines) / 18;
     this.failureBias = Math.min(12, this.failureBias + gain);
     this.skill = Math.min(8, this.skill + gain * 0.75 + 0.2);
-    this.perBeat = Math.max(0.35, 1 - this.skill * 0.12);
+    this.perBeat = Math.max(0.35, 0.5 - this.skill * 0.08);
+  }
+
+  updateLearningMetrics() {
+    if (this.gameHistory.length === 0) return;
+    
+    // Calculate averages
+    this.avgScore = this.gameHistory.reduce((sum, g) => sum + g.score, 0) / this.gameHistory.length;
+    this.avgLines = this.gameHistory.reduce((sum, g) => sum + g.lines, 0) / this.gameHistory.length;
+    this.winRate = this.gameHistory.filter(g => g.success).length / this.gameHistory.length;
+    
+    // Self-adapt: if winning, become more aggressive; if losing, become more defensive
+    if (this.winRate > 0.6) {
+      this.aggressionLevel = Math.min(1.8, this.aggressionLevel + 0.1);
+      this.failureBias = Math.max(0, this.failureBias - 0.2);  // Less defensive
+    } else if (this.winRate < 0.3) {
+      this.aggressionLevel = Math.max(0.5, this.aggressionLevel - 0.15);
+      this.failureBias = Math.min(10, this.failureBias + 0.3);  // More defensive
+    }
+    
+    // Adapt speed based on performance
+    if (this.avgScore > 5000) {
+      this.perBeat = Math.max(0.35, this.perBeat - 0.05);  // Speed up if doing well
+    } else if (this.avgScore < 1000) {
+      this.perBeat = Math.min(1.2, this.perBeat + 0.08);  // Slow down if struggling
+    }
+  }
+
+  recordSuccess(lines = 0) {
+    // Positive reinforcement for clears
+    if (this.learningEnabled) {
+      this.skill = Math.min(8, this.skill + 0.05 * lines);
+    }
   }
 
   update(dt, game, audio) {
     if (!game.active || game.state !== 'playing') return;
 
-    this.failureBias = Math.max(0, this.failureBias * 0.985);
-    this.skill = Math.max(0, this.skill * 0.993);
-    this.perBeat = Math.max(0.35, 1 - this.skill * 0.12);
+    this.failureBias = Math.max(0, this.failureBias * 0.98);  // Decay slower to learn better
+    this.skill = Math.max(0, this.skill * 0.992);
+    this.perBeat = Math.max(0.35, 1 - this.skill * 0.11);
 
     if (this.serial !== game.pieceSerial) {
       this.serial = game.pieceSerial;
-      this.plan = planMove(game, this.failureBias + this.skill * 0.7);
+      const learningBias = (this.failureBias + this.skill * 0.7) * this.aggressionLevel;
+      this.plan = planMove(game, learningBias);
       this.aligned = false;
       this.tries = 0;
     }

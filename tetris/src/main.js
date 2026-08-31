@@ -10,7 +10,7 @@ import { AudioEngine, MUSIC_THEMES } from './audio.js';
 import { Input } from './input.js';
 import { Fx } from './fx.js';
 import { Bot } from './bot.js';
-import { HIDDEN_ROWS, COLS, PIECES } from './pieces.js';
+import { HIDDEN_ROWS, COLS, PIECES, COLOR_THEMES, getColorTheme } from './pieces.js';
 import { STAGES } from './stages.js';
 import { UI_THEMES, BG_PRESETS, applyUiTheme, applyBackground, readImageFile, wellFromHex } from './theme.js';
 
@@ -21,38 +21,82 @@ import { UI_THEMES, BG_PRESETS, applyUiTheme, applyBackground, readImageFile, we
 /** Quick access to DOM elements by ID */
 const $ = (id) => document.getElementById(id);
 
-// ============================================================
-// Core game engine instances
-// ============================================================
+/**
+ * Interpolate between two hex colors
+ * @param {string} color1 - Starting color (e.g., '#ff0000')
+ * @param {string} color2 - Ending color (e.g., '#0000ff')
+ * @param {number} t - Interpolation factor (0-1)
+ * @returns {string} Interpolated hex color
+ */
+function lerpColor(color1, color2, t) {
+  const c1 = parseInt(color1.slice(1), 16);
+  const c2 = parseInt(color2.slice(1), 16);
+  
+  const r1 = (c1 >> 16) & 255;
+  const g1 = (c1 >> 8) & 255;
+  const b1 = c1 & 255;
+  
+  const r2 = (c2 >> 16) & 255;
+  const g2 = (c2 >> 8) & 255;
+  const b2 = c2 & 255;
+  
+  const r = Math.round(r1 + (r2 - r1) * t);
+  const g = Math.round(g1 + (g2 - g1) * t);
+  const b = Math.round(b1 + (b2 - b1) * t);
+  
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
 
-const electronApi = (() => {
-  try {
-    return typeof require === 'function' ? require('electron') : null;
-  } catch {
-    return null;
-  }
-})();
-const isElectronRuntime = Boolean(electronApi && window && window.process && window.process.type === 'renderer');
-const ipcRenderer = isElectronRuntime && electronApi ? electronApi.ipcRenderer : null;
+/**
+ * Get background colors based on current level
+ * Colors progress through the stage tints and continue cycling
+ * @param {number} level - Current game level (1-9999)
+ * @returns {Object} Object with bg-color-1, bg-color-2, bg-color-3
+ */
+function getBackgroundColorsForLevel(level) {
+  // Color progression: cycle through complementary colors and stage tints
+  const colorPalette = [
+    '#40dcf5', // Aqua - THE DOCKS
+    '#35f0c8', // Mint - THE SHALLOWS
+    '#4fe08a', // Green - KELP LINE
+    '#3fb8ff', // Light Blue - THE DROP
+    '#6aa8ff', // Periwinkle - COLD CURRENT
+    '#7f8cff', // Light Purple - THE TRENCH
+    '#a05cf0', // Purple - MIDNIGHT ZONE
+    '#ff5b7f', // Red - THE ABYSS
+    '#ff00ff', // Magenta - VOID DEPTHS
+    '#00ccff', // Cyan - COSMIC TRENCH
+    '#ff3300', // Orange Red - PLASMA ZONE
+    '#ff6600', // Orange - INFERNO
+    '#ffff00', // Yellow - SINGULARITY
+    '#ff00ff'  // Magenta - BEYOND
+  ];
+  
+  // Map level to color index (1 stage per ~70 levels after stage progression)
+  const stageIndex = Math.floor((level - 1) / 70) % colorPalette.length;
+  const nextStageIndex = (stageIndex + 1) % colorPalette.length;
+  
+  // Interpolation within current level range
+  const levelInStage = (level - 1) % 70;
+  const t = levelInStage / 70;
+  
+  const color1 = lerpColor(colorPalette[stageIndex], colorPalette[nextStageIndex], t);
+  const color2 = lerpColor(colorPalette[(stageIndex + 1) % colorPalette.length], colorPalette[(stageIndex + 2) % colorPalette.length], t);
+  const color3 = lerpColor(colorPalette[(stageIndex + 2) % colorPalette.length], colorPalette[(stageIndex + 3) % colorPalette.length], t);
+  
+  return { color1, color2, color3 };
+}
 
-const game = new Game();        // Tetris game state and rules
-const fx = new Fx();            // Visual effects and screen shake
-const audio = new AudioEngine(); // Sound effects and music
-const renderer = new Renderer($('board'), $('hold'), $('next')); // Canvas rendering
-const input = new Input(game);  // Keyboard and touch input handler
-const bot = new Bot();          // AI auto-play logic
-
-// ============================================================
-// UI screen references
-// ============================================================
-
-const overlay = $('overlay');
-const cards = {
-  ready: overlay.querySelector('[data-screen="ready"]'),
-  paused: overlay.querySelector('[data-screen="paused"]'),
-  over: overlay.querySelector('[data-screen="over"]'),
-  theme: overlay.querySelector('[data-screen="theme"]')
-};
+/**
+ * Update background colors based on level
+ * @param {number} level - Current game level
+ */
+function updateBackgroundForLevel(level) {
+  const { color1, color2, color3 } = getBackgroundColorsForLevel(level);
+  document.documentElement.style.setProperty('--bg-color-1', color1);
+  document.documentElement.style.setProperty('--bg-color-2', color2);
+  document.documentElement.style.setProperty('--bg-color-3', color3);
+}
 
 // ============================================================
 // Game settings (loaded from localStorage)
@@ -87,10 +131,45 @@ const settings = Object.assign(
     bgWell: false,          // Show background in game well
     fullscreen: false,      // Launch window in full-screen mode
     controlsVisible: true,  // Show the right-side controls list
-    difficulty: 'normal'    // Game difficulty: easy, normal, hard
+    difficulty: 'normal',   // Game difficulty: easy, normal, hard
+    pieceTheme: 'default'   // Piece color theme: default, neon, pastel, fire, ice
   },
   JSON.parse(localStorage.getItem('tetris.settings') || '{}')
 );
+
+// ============================================================
+// Core game engine instances
+// ============================================================
+
+const electronApi = (() => {
+  try {
+    return typeof require === 'function' ? require('electron') : null;
+  } catch {
+    return null;
+  }
+})();
+const isElectronRuntime = Boolean(electronApi && window && window.process && window.process.type === 'renderer');
+const ipcRenderer = isElectronRuntime && electronApi ? electronApi.ipcRenderer : null;
+
+const game = new Game();        // Tetris game state and rules
+const fx = new Fx();            // Visual effects and screen shake
+const audio = new AudioEngine(); // Sound effects and music
+const renderer = new Renderer($('board'), $('hold'), $('next'), getColorTheme(settings.pieceTheme)); // Canvas rendering
+const input = new Input(game);  // Keyboard and touch input handler
+const bot = new Bot();          // AI auto-play logic
+
+// ============================================================
+// UI screen references
+// ============================================================
+
+const overlay = $('overlay');
+const cards = {
+  ready: overlay.querySelector('[data-screen="ready"]'),
+  paused: overlay.querySelector('[data-screen="paused"]'),
+  over: overlay.querySelector('[data-screen="over"]'),
+  beaten: overlay.querySelector('[data-screen="beaten"]'),
+  theme: overlay.querySelector('[data-screen="theme"]')
+};
 
 // ============================================================
 // Runtime state
@@ -130,10 +209,15 @@ function applyLook() {
   markPicked('pick-bg', settings.bgPreset);
   
   // Update difficulty buttons in sidebar
-  ['easy', 'normal', 'hard'].forEach((diff) => {
+  ['easy', 'normal', 'hard', 'extreme'].forEach((diff) => {
     const btn = $(`btn-diff-${diff}`);
     if (btn) btn.setAttribute('aria-pressed', String(diff === settings.difficulty));
   });
+  
+  // Apply piece color theme
+  const colorTheme = getColorTheme(settings.pieceTheme);
+  renderer.setColorTheme(colorTheme);
+  markPicked('pick-theme', settings.pieceTheme);
   
   updateMultiplierBadge();
 }
@@ -152,6 +236,9 @@ function applyDifficultySettings() {
   } else if (settings.difficulty === 'hard') {
     game.difficultySpeedMultiplier = 1.5;
     game.difficultyScoreMultiplier = 2.0;
+  } else if (settings.difficulty === 'extreme') {
+    game.difficultySpeedMultiplier = 2.0;
+    game.difficultyScoreMultiplier = 3.5;
   } else {
     game.difficultySpeedMultiplier = 1.0;
     game.difficultyScoreMultiplier = 1.0;
@@ -365,7 +452,7 @@ game.on((type, data) => {
       break;
     case 'harddrop': {
       audio.play('harddrop');
-      fx.kick(1.5 + Math.min(4, data.dist * 0.35));
+      fx.kick((1.5 + Math.min(4, data.dist * 0.35)) * 0.3);
       if (data.dist > 1) {
         const tops = new Map();
         for (const [cx, cy] of PIECES[data.key].cells[data.rot]) {
@@ -379,6 +466,9 @@ game.on((type, data) => {
     case 'cleared':
       onCleared(data);
       updateDiscordActivity();
+      break;
+    case 'beaten':
+      onBeaten(data);
       break;
     case 'gameover':
       onGameOver();
@@ -399,7 +489,7 @@ function onCleared(data) {
   audio.play('clear', data);
   if (data.combo > 0) audio.play('combo', data);
 
-  fx.kick(data.count >= 4 ? 13 : 3 + data.count * 2);
+  fx.kick((data.count >= 4 ? 13 : 3 + data.count * 2) * 0.3);
   fx.flash = data.count >= 4 ? 1 : 0.35;
   if (data.count >= 4) fx.glowBurst(1.4);
 
@@ -422,7 +512,7 @@ function onCleared(data) {
 
   if (data.perfect) {
     fx.popup('CLEAN CATCH', null, 'gold');
-    fx.kick(16);
+    fx.kick(16 * 0.3);
     audio.play('perfect');
   }
 
@@ -435,18 +525,59 @@ function onCleared(data) {
     const stage = STAGES[game.stage];
     fx.popup(stage.name, `stage ${game.stage + 1}`, 'big');
     fx.flash = Math.max(fx.flash, 0.6);
-    fx.kick(9);
+    fx.kick(9 * 0.3);
     audio.play('stage');
   }
 
   if (data.levelled || data.staged) audio.setTempo(game.level, game.stageSpeed);
 }
 
+function onBeaten() {
+  if (settings.autoplay) {
+    // In autoplay/AFK mode, record the run and restart immediately to keep learning
+    bot.recordFailure(game.score, game.lines, game.level);
+    // Quick restart: play sound and restart after brief delay
+    audio.stopMusic();
+    audio.play('levelup');
+    fx.kick(20 * 0.3);
+    setTimeout(() => {
+      game.start();
+      audio.setMuffled(false);
+      audio.setTempo(game.level, game.stageSpeed);
+      if (audio.musicOn) audio.startMusic(game.level);
+    }, 800);
+  } else {
+    // Normal mode: show beaten screen
+    audio.stopMusic();
+    audio.play('levelup');
+    fx.kick(20 * 0.3);
+    $('beaten-score').textContent = game.score.toLocaleString();
+    $('beaten-lines').textContent = game.lines;
+    $('beaten-level').textContent = game.level;
+    showScreen('beaten');
+    
+    // Update Discord activity with victory
+    if (isElectronRuntime && ipcRenderer) {
+      ipcRenderer.invoke('set-discord-activity', {
+        details: `VICTORY! Final Score: ${game.score}`,
+        state: `Beat the Game - Level 9999!`,
+        largeImageKey: 'fish_logo',
+        largeImageText: 'FISH THAT STUFF',
+        smallImageKey: 'fish_logo',
+        smallImageText: 'Victory!',
+        instance: false
+      }).catch(error => console.warn('Failed to update Discord on victory:', error));
+    }
+  }
+}
+
 function onGameOver() {
-  if (settings.autoplay) bot.recordFailure(game.score, game.lines);
+  // Record bot failure if in autoplay mode
+  if (settings.autoplay) bot.recordFailure(game.score, game.lines, game.level);
+  
   audio.stopMusic();
   audio.play('gameover');
-  fx.kick(14);
+  fx.kick(14 * 0.3);
   $('over-score').textContent = game.score.toLocaleString();
   $('over-lines').textContent = game.lines;
   $('over-level').textContent = game.level;
@@ -502,15 +633,26 @@ function updateHud() {
     hud.level.textContent = game.level;
     if (last.level >= 0) bump(hud.level);
     last.level = game.level;
+    
+    // Update background colors based on level
+    updateBackgroundForLevel(game.level);
+    
+    // Update background intensity based on level
+    // At level 256+, gradually increase visual intensity
+    let levelIntensity = 0;
+    if (game.level >= 256) {
+      levelIntensity = Math.min(1, (game.level - 256) / 100);
+    }
+    document.documentElement.style.setProperty('--level-intensity', levelIntensity);
   }
   if (game.lines !== last.lines) {
     hud.lines.textContent = game.lines;
     last.lines = game.lines;
   }
 
-  const progressLines = game.level >= 20 ? 10 : game.lines - ((game.level - 1) * 10);
-  const progressPct = game.level >= 20 ? 100 : Math.min(100, Math.max(0, (progressLines / 10) * 100));
-  const progressText = game.level >= 20 ? 'MAX' : `${Math.min(10, Math.max(0, progressLines))} / 10`;
+  const progressLines = game.level > 20 ? (game.lines - 200) % 10 : game.lines - ((game.level - 1) * 10);
+  const progressPct = game.level > 20 ? Math.min(100, Math.max(0, ((progressLines % 10) / 10) * 100)) : Math.min(100, Math.max(0, (progressLines / 10) * 100));
+  const progressText = game.level > 20 ? `${Math.min(10, Math.max(0, (progressLines % 10)))} / 10` : `${Math.min(10, Math.max(0, progressLines))} / 10`;
   if (Math.round(progressPct) !== last.progressPct || progressText !== last.progressText) {
     hud.progressFill.style.width = `${progressPct}%`;
     hud.progressText.textContent = progressText;
@@ -588,6 +730,7 @@ window.addEventListener('keydown', () => audio.unlock(), { once: true });
 overlay.addEventListener('click', (e) => {
   const cmd = e.target.closest('[data-cmd]');
   if (!cmd) return;
+  e.stopPropagation();  // Prevent event from reaching other handlers
   audio.unlock();
   const action = cmd.dataset.cmd;
   if (action === 'start') startGame();
@@ -599,11 +742,26 @@ overlay.addEventListener('click', (e) => {
   } else if (action === 'back') showScreen(themeReturn);
 });
 
-// Close button handler for mobile
+// Close button handler for mobile / settings flows
 overlay.addEventListener('click', (e) => {
-  if (e.target.closest('.card-close')) {
-    showScreen(null);
+  if (!e.target.closest('.card-close')) return;
+  e.stopPropagation();  // Prevent event from reaching other handlers
+
+  if (!cards.theme.hidden) {
+    showScreen(themeReturn);
+    return;
   }
+
+  if (!cards.paused.hidden) {
+    if (game.state === State.Paused) {
+      togglePause();
+    } else {
+      showScreen(null);
+    }
+    return;
+  }
+
+  showScreen(null);
 });
 
 // option pickers are built from the data so the markup stays short
@@ -664,6 +822,16 @@ buildPicker(
     }
     settings.bgPreset = value;
     applySettings();
+  }
+);
+
+buildPicker(
+  'pick-theme',
+  Object.entries(COLOR_THEMES).map(([k]) => [k, k.charAt(0).toUpperCase() + k.slice(1)]),
+  (value) => {
+    settings.pieceTheme = value;
+    applySettings();
+    audio.play('hold');
   }
 );
 
@@ -739,6 +907,7 @@ if (settingsBtn) {
       showScreen('paused');
       audio.setMuffled(true);
     } else if (game.state === State.Paused) {
+      themeReturn = 'paused';
       showScreen('paused');
     } else {
       themeReturn = 'ready';
@@ -756,7 +925,7 @@ if (botBtn) {
 }
 
 // Difficulty selector buttons
-['easy', 'normal', 'hard'].forEach((diff) => {
+['easy', 'normal', 'hard', 'extreme'].forEach((diff) => {
   const btn = $(`btn-diff-${diff}`);
   if (btn) {
     btn.addEventListener('click', () => {
@@ -765,7 +934,7 @@ if (botBtn) {
       game.difficulty = diff;
       applySettings();
       // Update all difficulty buttons
-      ['easy', 'normal', 'hard'].forEach((d) => {
+      ['easy', 'normal', 'hard', 'extreme'].forEach((d) => {
         const b = $(`btn-diff-${d}`);
         if (b) b.setAttribute('aria-pressed', String(d === diff));
       });

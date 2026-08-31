@@ -57,6 +57,7 @@
           <button class="difficulty-btn" id="btn-diff-easy" data-difficulty="easy" type="button" aria-pressed="false">Easy</button>
           <button class="difficulty-btn" id="btn-diff-normal" data-difficulty="normal" type="button" aria-pressed="true">Normal</button>
           <button class="difficulty-btn" id="btn-diff-hard" data-difficulty="hard" type="button" aria-pressed="false">Hard</button>
+          <button class="difficulty-btn" id="btn-diff-extreme" data-difficulty="extreme" type="button" aria-pressed="false">Extreme</button>
         </div>
       </section>
 
@@ -176,6 +177,11 @@
               </div>
             </div>
 
+            <div class="opt-group">
+              <h3>Piece Colours</h3>
+              <div class="opt-row" id="pick-theme"></div>
+            </div>
+
             <button class="btn btn-primary" data-cmd="back" type="button">Done</button>
           </div>
         </section>
@@ -191,6 +197,24 @@
               <div><span>Level</span><b id="over-level">1</b></div>
             </div>
             <button class="btn btn-primary" data-cmd="start" type="button">Cast again</button>
+            <p class="hint">or press <kbd>R</kbd></p>
+          </div>
+        </section>
+
+        <section class="card" data-screen="beaten" hidden>
+          <button class="card-close" type="button" aria-label="Close">✕</button>
+          <div class="card-body">
+            <p class="eyebrow eyebrow-victory">🎉 VICTORY 🎉</p>
+            <h2 id="beaten-title">YOU'VE BEATEN THE GAME!</h2>
+            <p class="lede" style="color: var(--aqua); text-align: center; margin: 12px 0; font-size: 12px;">
+              You reached the ultimate level!
+            </p>
+            <div class="result">
+              <div><span>Final Score</span><b id="beaten-score">0</b></div>
+              <div><span>Lines</span><b id="beaten-lines">0</b></div>
+              <div><span>Level</span><b id="beaten-level">9999</b></div>
+            </div>
+            <button class="btn btn-primary" data-cmd="start" type="button">Play Again</button>
             <p class="hint">or press <kbd>R</kbd></p>
           </div>
         </section>
