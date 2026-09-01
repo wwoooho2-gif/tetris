@@ -135,6 +135,7 @@ const settings = Object.assign(
     bgWell: false,          // Show background in game well
     fullscreen: false,      // Launch window in full-screen mode
     controlsVisible: true,  // Show the right-side controls list
+    vrMode: false,          // Use a headset-friendly presentation mode
     difficulty: 'normal',   // Game difficulty: easy, normal, hard, extreme,
     pieceTheme: 'default'   // Piece color theme: default, neon, pastel, fire, ice
   },
@@ -1033,6 +1034,89 @@ if (soundBtn) {
   });
 }
 
+let xrSession = null;
+
+async function finishVrMode(enabled) {
+  settings.vrMode = Boolean(enabled);
+  document.body.classList.toggle('vr-mode', settings.vrMode);
+  const vrBtn = $('btn-vr');
+  if (vrBtn) {
+    vrBtn.setAttribute('aria-pressed', String(settings.vrMode));
+    vrBtn.textContent = settings.vrMode ? 'Exit VR' : 'VR mode';
+  }
+  if (settings.vrMode) {
+    document.documentElement.style.setProperty('--ui-scale', '0.95');
+  } else {
+    applySettings();
+  }
+  if (window.dispatchEvent) {
+    window.dispatchEvent(new CustomEvent('vr-mode-toggle', { detail: { enabled: settings.vrMode } }));
+  }
+}
+
+async function startWebXRSession() {
+  const xrApi = navigator && navigator.xr;
+  if (!xrApi || typeof xrApi.requestSession !== 'function') {
+    console.warn('WebXR is not available in this browser. Falling back to the VR presentation mode.');
+    await finishVrMode(true);
+    return false;
+  }
+
+  try {
+    const supportsImmersiveVr = xrApi.isSessionSupported
+      ? await xrApi.isSessionSupported('immersive-vr')
+      : true;
+
+    if (!supportsImmersiveVr) {
+      console.warn('Immersive VR is not supported by this device.');
+      await finishVrMode(true);
+      return false;
+    }
+
+    const session = await xrApi.requestSession('immersive-vr', {
+      optionalFeatures: ['local-floor', 'hand-tracking', 'bounded-floor'],
+      requiredFeatures: ['local-floor']
+    });
+
+    xrSession = session;
+    session.addEventListener('end', () => {
+      xrSession = null;
+      finishVrMode(false);
+    });
+
+    await finishVrMode(true);
+    return true;
+  } catch (error) {
+    console.warn('Unable to start immersive VR session.', error);
+    await finishVrMode(true);
+    return false;
+  }
+}
+
+async function stopWebXRSession() {
+  if (xrSession && typeof xrSession.end === 'function') {
+    await xrSession.end();
+    return;
+  }
+  await finishVrMode(false);
+}
+
+const vrBtn = $('btn-vr');
+if (vrBtn) {
+  vrBtn.addEventListener('click', async () => {
+    audio.unlock();
+    if (settings.vrMode && xrSession) {
+      await stopWebXRSession();
+      return;
+    }
+    if (settings.vrMode) {
+      await stopWebXRSession();
+      return;
+    }
+    await startWebXRSession();
+  });
+}
+
 const settingsBtn = $('btn-settings');
 if (settingsBtn) {
   settingsBtn.addEventListener('click', () => {
@@ -1049,15 +1133,6 @@ if (settingsBtn) {
       themeReturn = 'ready';
       showScreen('paused');
     }
-  });
-}
-
-const leaderboardBtn = $('btn-leaderboard');
-if (leaderboardBtn) {
-  leaderboardBtn.addEventListener('click', () => {
-    audio.unlock();
-    const leaderboardUrl = new URL('./leaderboard-demo.html', window.location.href).toString();
-    window.open(leaderboardUrl, '_blank', 'noopener,noreferrer');
   });
 }
 

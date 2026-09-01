@@ -31,6 +31,61 @@ export class Input {
     this.arrTimer = 0;
     this.handlers = {};
     this.enabled = true;
+    this.vrState = {
+      left: false,
+      right: false,
+      soft: false,
+      cw: false,
+      ccw: false,
+      drop: false,
+      hold: false
+    };
+  }
+
+  static decodeVrGamepad(gamepad = {}) {
+    const axes = Array.isArray(gamepad.axes) ? gamepad.axes : [];
+    const buttons = Array.isArray(gamepad.buttons) ? gamepad.buttons : [];
+    const isPressed = (button) => Boolean(button && (button.pressed || button.value > 0.35));
+    const buttonState = (index) => isPressed(buttons[index]);
+    const leftX = Number(axes[0] ?? 0);
+    const leftY = Number(axes[1] ?? 0);
+    const rightX = Number(axes[2] ?? 0);
+    const rightY = Number(axes[3] ?? 0);
+
+    return {
+      left: leftX < -0.5 || (buttonState(14) && rightX < -0.5),
+      right: leftX > 0.5 || (buttonState(15) && rightX > 0.5),
+      soft: leftY > 0.6 || rightY > 0.6 || buttonState(0) || buttonState(1),
+      cw: buttonState(3) || buttonState(4),
+      ccw: buttonState(2) || buttonState(5),
+      drop: buttonState(6) || rightY < -0.8 || leftY < -0.8,
+      hold: buttonState(7) || buttonState(8),
+      any: leftX !== 0 || leftY !== 0 || rightX !== 0 || rightY !== 0 || buttons.some(isPressed)
+    };
+  }
+
+  updateVrGamepads() {
+    if (!navigator || typeof navigator.getGamepads !== 'function') return;
+    const pads = navigator.getGamepads();
+    for (const pad of pads) {
+      if (!pad || !pad.connected) continue;
+      const next = Input.decodeVrGamepad(pad);
+      const prev = this.vrState;
+      const keys = ['left', 'right', 'soft', 'cw', 'ccw', 'drop', 'hold'];
+      for (const key of keys) {
+        const enabled = Boolean(next[key]);
+        const wasEnabled = Boolean(prev[key]);
+        if (enabled && !wasEnabled) {
+          if (key === 'left' || key === 'right') this.press(key);
+          else this.press(key);
+        } else if (!enabled && wasEnabled) {
+          if (key === 'left' || key === 'right' || key === 'soft') this.release(key);
+        }
+        prev[key] = enabled;
+      }
+      this.vrState = prev;
+      return;
+    }
   }
 
   attach() {
@@ -126,6 +181,7 @@ export class Input {
   }
 
   update(dt) {
+    this.updateVrGamepads();
     if (!this.dir || !this.enabled) return;
     const ms = dt * 1000;
     this.dasTimer += ms;

@@ -82,6 +82,38 @@ body::after {
   z-index: 6;
 }
 
+body.vr-mode {
+  background: #000;
+}
+
+body.vr-mode .app {
+  width: 100vw;
+  height: 100dvh;
+  transform: none;
+  padding: 10px 12px 12px;
+}
+
+body.vr-mode .topbar {
+  padding-bottom: 4px;
+}
+
+body.vr-mode .topbar-actions { justify-content: center; }
+
+body.vr-mode .vr-toggle { display: inline-flex; }
+
+body.vr-mode .brand h1 {
+  font-size: clamp(18px, 3vw, 28px);
+}
+
+body.vr-mode .chip {
+  font-size: 11px;
+  padding: 10px 12px 8px;
+}
+
+body.vr-mode .stage {
+  gap: 10px;
+}
+
 .app {
   position: relative;
   z-index: 1;
@@ -893,6 +925,9 @@ input[type="range"]::-moz-range-thumb {
     white-space: nowrap;
     flex: 1 1 0;
     min-width: 0;
+  }
+  .vr-toggle {
+    display: none !important;
   }
 
   .stage {
