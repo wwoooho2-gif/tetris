@@ -1,4 +1,4 @@
-import { COLS, ROWS, PIECES } from './pieces.js';
+import { COLS, ROWS, HIDDEN_ROWS, PIECES } from './pieces.js';
 
 const FULL = (1 << COLS) - 1;
 
@@ -95,12 +95,20 @@ function scorePlacement(rows, shape, x, y, learningBias = 0) {
   const out = rows.slice();
   let low = 0;
   let high = ROWS;
+  let firstFilledRow = ROWS;
   for (const r of shape.rows) {
     const ry = y + r.dy;
     if (ry < 0) return null;
     out[ry] |= shift(r.mask, x);
     if (ry > low) low = ry;
     if (ry < high) high = ry;
+  }
+
+  for (let row = 0; row < ROWS; row++) {
+    if (out[row] !== 0) {
+      firstFilledRow = row;
+      break;
+    }
   }
 
   let cleared = 0;
@@ -113,14 +121,19 @@ function scorePlacement(rows, shape, x, y, learningBias = 0) {
 
   const f = evaluate(kept);
   const landing = ROWS - (low + high) / 2;
+  const dangerLine = HIDDEN_ROWS + 6;
+  const nearTopPenalty = firstFilledRow < dangerLine ? (dangerLine - firstFilledRow) * 180 : 0;
+  const tetrisBonus = cleared === 4 ? 1400 : cleared === 3 ? 350 : cleared === 2 ? 120 : cleared === 1 ? 25 : 0;
   const learnedSafetyBonus = learningBias * ((12 - Math.min(12, f.holes)) * 2.5 + cleared * 8 + (COLS - Math.min(COLS, Math.abs(x))) * 1.4 - f.wells * 2.2);
   return (
     W.landing * landing +
     W.cleared * cleared +
+    tetrisBonus +
     W.rowTrans * f.rowTrans +
     W.colTrans * f.colTrans +
     W.holes * f.holes +
-    W.wells * f.wells +
+    W.wells * f.wells -
+    nearTopPenalty +
     learnedSafetyBonus
   );
 }
@@ -176,7 +189,7 @@ export function planMove(game, learningBias = 0) {
 
 export class Bot {
   constructor() {
-    this.perBeat = 0.5;  // Base speed for piece drops
+    this.perBeat = 0.35;  // Base speed for piece drops; keep auto mode snappy
     this.plan = null;
     this.serial = -1;
     this.timer = 0;
@@ -214,7 +227,7 @@ export class Bot {
     this.aligned = false;
     this.tries = 0;
     this.timer = 0;
-    this.perBeat = Math.max(0.35, 0.5 - this.skill * 0.08);
+    this.perBeat = Math.max(0.25, 0.35 - this.skill * 0.05);
   }
 
   recordFailure(score = 0, lines = 0, level = 1) {
@@ -239,7 +252,7 @@ export class Bot {
     const gain = 0.55 + Math.max(0, 80 - score) / 120 + Math.max(0, 20 - lines) / 18;
     this.failureBias = Math.min(12, this.failureBias + gain);
     this.skill = Math.min(8, this.skill + gain * 0.75 + 0.2);
-    this.perBeat = Math.max(0.35, 0.5 - this.skill * 0.08);
+    this.perBeat = Math.max(0.25, 0.35 - this.skill * 0.05);
   }
 
   updateLearningMetrics() {
@@ -279,7 +292,10 @@ export class Bot {
 
     this.failureBias = Math.max(0, this.failureBias * 0.98);  // Decay slower to learn better
     this.skill = Math.max(0, this.skill * 0.992);
-    this.perBeat = Math.max(0.35, 1 - this.skill * 0.11);
+
+    // Keep the user-configured bot speed; the AI can still improve placement quality without
+    // forcing the bot to slow down on every update.
+    if (this.perBeat < 0.25) this.perBeat = 0.25;
 
     if (this.serial !== game.pieceSerial) {
       this.serial = game.pieceSerial;
@@ -331,7 +347,7 @@ export class Bot {
   }
 
   due(dt, audio) {
-    const step = Math.max(0.35, this.perBeat);
+    const step = Math.max(0.25, this.perBeat);
     if (audio && audio.playing && audio.tickFired >= 0) {
       const threshold = Math.max(1, Math.round(step));
       return audio.tickFired % threshold === 0;

@@ -47,6 +47,7 @@ export class Game {
     this.listeners = [];    // Event subscribers for game events
     this.best = Number(localStorage.getItem('tetris.best') || 0); // Best score ever
     this.autoplay = false;  // Ignore best-score persistence while auto-play is active
+    this.scoreEligibleForBest = !this.autoplay;
     this.stagesOn = true;
     this.difficulty = 'normal';  // Game difficulty for piece selection
     this.difficultySpeedMultiplier = 3.5;  // Speed multiplier based on difficulty
@@ -85,6 +86,7 @@ export class Game {
     this.score = 0;
     this.lines = 0;
     this.level = 1;
+    this.scoreEligibleForBest = !this.autoplay;
     this.stage = 0;
     this.combo = -1;
     this.b2b = false;
@@ -109,6 +111,7 @@ export class Game {
 
   start() {
     this.reset();
+    this.scoreEligibleForBest = !this.autoplay;
     this.state = State.Playing;
     this.spawn();
     this.emit('start');
@@ -393,7 +396,7 @@ export class Game {
   gameOver() {
     this.state = State.Over;
     this.active = null;
-    if (!this.autoplay && this.score > this.best) {
+    if (this.scoreEligibleForBest && this.score > this.best) {
       this.best = this.score;
       localStorage.setItem('tetris.best', String(this.best));
     }

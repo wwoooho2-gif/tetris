@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Global Leaderboard Demo</title>
+  <style>
+    :root {
+      --bg: #031a24;
+      --bg-2: #061d2a;
+      --panel: rgba(9, 30, 39, 0.88);
+      --panel-strong: rgba(7, 25, 33, 0.96);
+      --line: rgba(64, 220, 245, 0.45);
+      --line-soft: rgba(64, 220, 245, 0.2);
+      --mint: #35f0c8;
+      --aqua: #40dcf5;
+      --blue: #2b7dff;
+      --text: #eaf8ff;
+      --muted: #a7d5d9;
+      --gold: #ffd166;
+      --danger: #ff5b7f;
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", sans-serif;
+      background:
+        radial-gradient(1100px 700px at 50% 15%, rgba(64,220,245,0.12), transparent 58%),
+        linear-gradient(180deg, var(--bg), var(--bg-2));
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 32px;
+    }
+
+    .wrap {
+      width: min(980px, 92vw);
+      background: rgba(7, 20, 29, 0.9);
+      border: 1px solid var(--line);
+      box-shadow: 0 0 0 1px rgba(64,220,245,0.12), 0 22px 50px rgba(0,0,0,0.45);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 22px 28px 18px;
+      border-bottom: 1px solid var(--line-soft);
+      background: linear-gradient(180deg, rgba(14,34,45,0.85), rgba(7,20,29,0.7));
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(53,240,200,0.25), rgba(64,220,245,0.12));
+      border: 1px solid var(--line);
+      font-size: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(22px, 2vw, 32px);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(64,220,245,0.08);
+      color: var(--aqua);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 20px;
+      padding: 22px;
+      background:
+        linear-gradient(180deg, rgba(8, 22, 31, 0.9), rgba(6, 16, 23, 0.95));
+    }
+
+    .panel {
+      border: 1px solid var(--line-soft);
+      border-radius: 14px;
+      background: rgba(11, 28, 38, 0.82);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line-soft);
+      background: rgba(14, 35, 46, 0.72);
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .panel-header .meta {
+      color: var(--mint);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(64,220,245,0.08);
+      text-align: left;
+    }
+
+    th {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    tbody tr:hover {
+      background: rgba(64,220,245,0.04);
+    }
+
+    .rank {
+      width: 58px;
+      color: var(--gold);
+      font-weight: 800;
+    }
+
+    .name {
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 5px 9px;
+      border: 1px solid rgba(255,209,102,0.35);
+      background: rgba(255,209,102,0.08);
+      color: var(--gold);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .player-row {
+      background: linear-gradient(90deg, rgba(53,240,200,0.08), rgba(64,220,245,0.02));
+    }
+
+    .score {
+      font-weight: 800;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .mini-card {
+      padding: 18px;
+      border-radius: 14px;
+      border: 1px solid var(--line-soft);
+      background: rgba(11, 28, 38, 0.82);
+    }
+
+    .mini-card h3 {
+      margin: 0 0 16px;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .kpi {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(64,220,245,0.08);
+    }
+
+    .kpi:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .kpi .label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 10px;
+    }
+
+    .kpi strong {
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .badge {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(64,220,245,0.08);
+      border: 1px solid var(--line-soft);
+      color: var(--aqua);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .empty-row {
+      color: var(--muted);
+      text-align: center;
+      padding: 18px;
+    }
+
+    @media (max-width: 760px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+      th:nth-child(4), td:nth-child(4) { display: none; }
+      .head { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div class="title">
+        <div class="logo">🐟</div>
+        <div>
+          <h1>Fish that stuff</h1>
+          <div class="sub">Global leaderboard</div>
+        </div>
+      </div>
+      <div class="pill">Live ranks</div>
+    </div>
+
+    <div class="content">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Top players</h2>
+          <div class="meta">Local scoreboard</div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Player</th>
+              <th>Score</th>
+              <th>Level</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body">
+            <tr>
+              <td colspan="4" class="empty-row">No scores submitted yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="side">
+        <div class="mini-card">
+          <h3>Live server stats</h3>
+          <div class="kpi">
+            <span class="label">Best score</span>
+            <strong id="best-score">0</strong>
+          </div>
+          <div class="kpi">
+            <span class="label">Avg score</span>
+            <strong id="avg-score">0</strong>
+          </div>
+          <div class="kpi">
+            <span class="label">Games</span>
+            <strong id="total-runs">0</strong>
+          </div>
+        </div>
+
+        <div class="mini-card">
+          <h3>Board stats</h3>
+          <div class="kpi">
+            <span class="label">Lines</span>
+            <strong id="total-lines">0</strong>
+          </div>
+          <div class="kpi">
+            <span class="label">Tetrises</span>
+            <strong id="tetrises">0</strong>
+          </div>
+          <div class="kpi">
+            <span class="label">Top level</span>
+            <strong id="top-level">1</strong>
+          </div>
+          <div class="badges">
+            <span class="badge" id="status-badge">LIVE</span>
+            <span class="badge">SERVER</span>
+            <span class="badge">REAL</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const LEADERBOARD_KEY = 'tetris.leaderboard';
+    const LEADERBOARD_CHANNEL = 'fish-tetris-leaderboard';
+
+    async function getEntries() {
+      try {
+        const response = await fetch('http://localhost:3001/api/leaderboard', { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data)) return data.filter(Boolean);
+        }
+      } catch {
+        // fall back to browser storage if the server is offline
+      }
+
+      try {
+        const raw = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
+        return Array.isArray(raw) ? raw.filter(Boolean) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    async function getStats() {
+      try {
+        const response = await fetch('http://localhost:3001/api/leaderboard/stats', { cache: 'no-store' });
+        if (response.ok) {
+          return await response.json();
+        }
+      } catch {
+        // fall through to local estimates
+      }
+
+      const entries = await getEntries();
+      const totalRuns = entries.length;
+      const bestScore = entries.reduce((max, entry) => Math.max(max, Number(entry.score) || 0), 0);
+      const avgScore = totalRuns ? Math.round(entries.reduce((sum, entry) => sum + (Number(entry.score) || 0), 0) / totalRuns) : 0;
+      const totalLines = entries.reduce((sum, entry) => sum + (Number(entry.lines) || 0), 0);
+      const highestLevel = entries.reduce((max, entry) => Math.max(max, Number(entry.level) || 1), 1);
+      return {
+        totalRuns,
+        bestScore,
+        avgScore,
+        totalLines,
+        highestLevel,
+        tetrises: Math.max(0, Math.floor(totalLines / 4))
+      };
+    }
+
+    async function renderLeaderboard() {
+      const tbody = document.getElementById('leaderboard-body');
+      if (!tbody) return;
+      const entries = (await getEntries()).slice(0, 10);
+      if (!entries.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-row">No scores submitted yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = entries.map((entry, index) => `
+        <tr class="${index === 0 ? 'player-row' : ''}">
+          <td class="rank">${index + 1}</td>
+          <td class="name">${String(entry.name || 'PLAYER').slice(0, 12)}</td>
+          <td class="score">${Number(entry.score || 0).toLocaleString()}</td>
+          <td><span class="tag">Lvl ${Number(entry.level || 1)}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    async function renderStats() {
+      const stats = await getStats();
+      document.getElementById('best-score').textContent = Number(stats.bestScore || 0).toLocaleString();
+      document.getElementById('avg-score').textContent = Number(stats.avgScore || 0).toLocaleString();
+      document.getElementById('total-runs').textContent = Number(stats.totalRuns || 0).toLocaleString();
+      document.getElementById('total-lines').textContent = Number(stats.totalLines || 0).toLocaleString();
+      document.getElementById('tetrises').textContent = Number(stats.tetrises || 0).toLocaleString();
+      document.getElementById('top-level').textContent = Number(stats.highestLevel || 1).toLocaleString();
+    }
+
+    async function refreshFromStorage() {
+      await renderLeaderboard();
+      await renderStats();
+    }
+
+    renderLeaderboard();
+    renderStats();
+    window.addEventListener('storage', refreshFromStorage);
+    window.addEventListener('leaderboard:updated', refreshFromStorage);
+
+    if ('BroadcastChannel' in window) {
+      const channel = new BroadcastChannel(LEADERBOARD_CHANNEL);
+      channel.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'leaderboard-update') refreshFromStorage();
+      });
+    }
+
+    setInterval(refreshFromStorage, 600);
+  </script>
+</body>
+</html>

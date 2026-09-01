@@ -13,6 +13,7 @@ import { Bot } from './bot.js';
 import { HIDDEN_ROWS, COLS, PIECES, COLOR_THEMES, getColorTheme } from './pieces.js';
 import { STAGES } from './stages.js';
 import { UI_THEMES, BG_PRESETS, applyUiTheme, applyBackground, readImageFile, wellFromHex } from './theme.js';
+import { canSubmitLeaderboard, normalizePlayerName } from './leaderboard.js';
 
 // ============================================================
 // Utility and DOM helpers
@@ -109,6 +110,9 @@ function updateBackgroundForLevel(level) {
  * Visual: ghost piece, grid, themes, backgrounds
  * Gameplay: stages, autoplay settings
  */
+const LEADERBOARD_KEY = 'tetris.leaderboard';
+const PLAYER_NAME_KEY = 'tetris.player-name';
+const LEADERBOARD_CHANNEL = 'fish-tetris-leaderboard';
 const settings = Object.assign(
   {
     music: 35,              // Music volume (0-100)
@@ -131,7 +135,7 @@ const settings = Object.assign(
     bgWell: false,          // Show background in game well
     fullscreen: false,      // Launch window in full-screen mode
     controlsVisible: true,  // Show the right-side controls list
-    difficulty: 'normal',   // Game difficulty: easy, normal, hard
+    difficulty: 'normal',   // Game difficulty: easy, normal, hard, extreme,
     pieceTheme: 'default'   // Piece color theme: default, neon, pastel, fire, ice
   },
   JSON.parse(localStorage.getItem('tetris.settings') || '{}')
@@ -198,11 +202,16 @@ function applyLook() {
   $('bg-note').textContent = bgData
     ? 'Custom image loaded, pick Custom above to use it.'
     : 'No image loaded. Upload one to use the Custom slot.';
-  $('opt-bgfade').value = settings.bgFade;
-  $('out-bgfade').textContent = `${settings.bgFade}%`;
-  $('opt-bgwell').checked = settings.bgWell;
-  $('opt-fullscreen').checked = settings.fullscreen;
-  $('opt-colour').value = settings.uiCustom;
+  const bgFadeEl = $('opt-bgfade');
+  const bgFadeOut = $('out-bgfade');
+  const bgWellEl = $('opt-bgwell');
+  if (bgFadeEl) bgFadeEl.value = settings.bgFade;
+  if (bgFadeOut) bgFadeOut.textContent = `${settings.bgFade}%`;
+  if (bgWellEl) bgWellEl.checked = settings.bgWell;
+  const fullscreenEl = $('opt-fullscreen');
+  if (fullscreenEl) fullscreenEl.checked = settings.fullscreen;
+  const colourEl = $('opt-colour');
+  if (colourEl) colourEl.value = settings.uiCustom;
   $('out-colour').textContent = settings.uiTheme === 'custom' ? settings.uiCustom : 'pick a shade';
   markPicked('pick-music', settings.musicTheme);
   markPicked('pick-colour', settings.uiTheme);
@@ -327,15 +336,157 @@ function applySettings() {
   if (soundBtn) soundBtn.setAttribute('aria-pressed', String(settings.musicOn));
   if (botBtn) botBtn.setAttribute('aria-pressed', String(settings.autoplay));
 
+  const resultScreenVisible = !cards.over.hidden || !cards.beaten.hidden;
+  setLeaderboardSubmitVisible(Boolean(resultScreenVisible) && !settings.autoplay && !game.autoplay && game.score > 0);
+
   audio.setTheme(settings.musicTheme, game.level, game.stageSpeed);
   applyLook();
   localStorage.setItem('tetris.settings', JSON.stringify(settings));
+}
+
+async function getLeaderboardEntries() {
+  try {
+    const response = await fetch('http://localhost:3001/api/leaderboard', {
+      cache: 'no-store'
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return Array.isArray(data) ? data.filter(Boolean) : [];
+    }
+  } catch {
+    // Fall back to browser storage if the server is unavailable.
+  }
+
+  try {
+    const raw = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
+    return Array.isArray(raw) ? raw.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveLeaderboardEntries(entries) {
+  try {
+    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
+  } catch {
+    // Ignore storage failures in private modes or restricted browsers.
+  }
+
+  window.dispatchEvent(new Event('leaderboard:updated'));
+
+  if ('BroadcastChannel' in window) {
+    const channel = new BroadcastChannel(LEADERBOARD_CHANNEL);
+    channel.postMessage({ type: 'leaderboard-update', entries });
+    channel.close();
+  }
+
+  try {
+    await fetch('http://localhost:3001/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries })
+    });
+  } catch {
+    // Server is optional; keep local browser storage as fallback.
+  }
+}
+
+async function clearLeaderboard() {
+  try {
+    await fetch('http://localhost:3001/api/leaderboard', {
+      method: 'DELETE'
+    });
+  } catch {
+    // ignore server-side reset failure and keep local fallback
+  }
+  await saveLeaderboardEntries([]);
+}
+
+function getDefaultPlayerName() {
+  const savedName = localStorage.getItem(PLAYER_NAME_KEY);
+  return savedName && String(savedName).trim() ? String(savedName).trim() : 'PLAYER';
+}
+
+function syncLeaderboardNameInput(targetId) {
+  const input = targetId ? $(targetId) : null;
+  if (!input) return;
+  input.value = getDefaultPlayerName();
+}
+
+async function submitScoreToLeaderboard() {
+  if (!canSubmitLeaderboard({ autoplay: settings.autoplay || game.autoplay, score: game.score, gameState: game.state })) return;
+  const playerName = (document.getElementById('leaderboard-name')?.value || document.getElementById('leaderboard-name-beaten')?.value || '').trim();
+  const safeName = normalizePlayerName(playerName || getDefaultPlayerName());
+  localStorage.setItem(PLAYER_NAME_KEY, safeName);
+
+  const scoreEntry = {
+    name: safeName,
+    score: Number(game.score) || 0,
+    lines: Number(game.lines) || 0,
+    level: Number(game.level) || 1,
+    date: new Date().toISOString()
+  };
+
+  try {
+    const response = await fetch('http://localhost:3001/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(scoreEntry)
+    });
+    if (response.ok) {
+      const serverEntries = await response.json();
+      await saveLeaderboardEntries(Array.isArray(serverEntries) ? serverEntries : [scoreEntry]);
+    } else {
+      const entries = await getLeaderboardEntries();
+      entries.push(scoreEntry);
+      entries.sort((a, b) => (b.score - a.score) || (b.lines - a.lines));
+      await saveLeaderboardEntries(entries.slice(0, 10));
+    }
+  } catch {
+    const entries = await getLeaderboardEntries();
+    entries.push(scoreEntry);
+    entries.sort((a, b) => (b.score - a.score) || (b.lines - a.lines));
+    await saveLeaderboardEntries(entries.slice(0, 10));
+  }
+
+  const inputs = [
+    document.getElementById('leaderboard-name'),
+    document.getElementById('leaderboard-name-beaten')
+  ].filter(Boolean);
+  for (const input of inputs) input.value = safeName;
+}
+
+function setLeaderboardSubmitVisible(visible) {
+  const submitGroup = document.getElementById('leaderboard-submit');
+  const submitGroupBeaten = document.getElementById('leaderboard-submit-beaten');
+  const isAutoMode = Boolean(settings.autoplay || game.autoplay);
+  const allowSubmit = !isAutoMode && Boolean(visible) && canSubmitLeaderboard({
+    autoplay: isAutoMode,
+    score: game.score,
+    gameState: game.state
+  });
+
+  const applyVisibility = (node) => {
+    if (!node) return;
+    node.hidden = !allowSubmit;
+    node.style.display = allowSubmit ? '' : 'none';
+    node.setAttribute('aria-hidden', String(!allowSubmit));
+  };
+
+  applyVisibility(submitGroup);
+  applyVisibility(submitGroupBeaten);
 }
 
 function showScreen(name) {
   for (const key of Object.keys(cards)) cards[key].hidden = key !== name;
   overlay.hidden = !name;
   input.enabled = !name;
+
+  if (name === 'over' || name === 'beaten') {
+    setLeaderboardSubmitVisible(true);
+  } else {
+    setLeaderboardSubmitVisible(false);
+  }
 }
 
 async function updateDiscordActivity() {
@@ -361,12 +512,16 @@ async function startGame() {
   fx.clear();
   bot.reset();
   attract = 0;
+  clearLeaderboard();
   applyDifficultySettings();
   game.start();
   audio.setMuffled(false);
   audio.setTempo(game.level, game.stageSpeed);
   if (audio.musicOn && !audio.playing) await audio.startMusic(game.level);
   audio.play('start');
+  syncLeaderboardNameInput('leaderboard-name');
+  syncLeaderboardNameInput('leaderboard-name-beaten');
+  setLeaderboardSubmitVisible(false);
   showScreen(null);
   updateDiscordActivity();
 }
@@ -375,8 +530,13 @@ function toggleAutoplay(on) {
   const previous = settings.autoplay;
   settings.autoplay = on === undefined ? !settings.autoplay : on;
   game.autoplay = settings.autoplay;
+  game.scoreEligibleForBest = !game.autoplay;
   bot.reset();
   attract = 0;
+  setLeaderboardSubmitVisible(false);
+  if (game.state === State.Over || game.state === State.Beaten) {
+    showScreen(game.state === State.Over ? 'over' : 'beaten');
+  }
 
   if (!settings.autoplay) {
     // Turning auto mode off always resets the board to a fresh game.
@@ -554,6 +714,8 @@ function onBeaten() {
     $('beaten-score').textContent = game.score.toLocaleString();
     $('beaten-lines').textContent = game.lines;
     $('beaten-level').textContent = game.level;
+    syncLeaderboardNameInput('leaderboard-name-beaten');
+    setLeaderboardSubmitVisible(true);
     showScreen('beaten');
     
     // Update Discord activity with victory
@@ -581,8 +743,10 @@ function onGameOver() {
   $('over-score').textContent = game.score.toLocaleString();
   $('over-lines').textContent = game.lines;
   $('over-level').textContent = game.level;
-  const isBestRun = game.score > 0 && !settings.autoplay && game.score >= game.best;
+  const isBestRun = game.score > 0 && game.scoreEligibleForBest && game.score >= game.best;
   $('over-title').textContent = isBestRun ? 'New personal best' : 'One that got away';
+  syncLeaderboardNameInput('leaderboard-name');
+  setLeaderboardSubmitVisible(!settings.autoplay && game.score > 0);
   showScreen('over');
   
   // Update Discord activity with final score
@@ -869,16 +1033,22 @@ $('btn-bg-clear').addEventListener('click', () => {
   applySettings();
 });
 
-$('opt-bgwell').addEventListener('change', (e) => {
-  settings.bgWell = e.target.checked;
-  applySettings();
-});
+const bgWellInput = $('opt-bgwell');
+if (bgWellInput) {
+  bgWellInput.addEventListener('change', (e) => {
+    settings.bgWell = e.target.checked;
+    applySettings();
+  });
+}
 
-$('opt-colour').addEventListener('input', (e) => {
-  settings.uiCustom = e.target.value;
-  settings.uiTheme = 'custom';
-  applySettings();
-});
+const colourInput = $('opt-colour');
+if (colourInput) {
+  colourInput.addEventListener('input', (e) => {
+    settings.uiCustom = e.target.value;
+    settings.uiTheme = 'custom';
+    applySettings();
+  });
+}
 
 const controlsToggle = $('controls-toggle');
 if (controlsToggle) {
@@ -916,11 +1086,40 @@ if (settingsBtn) {
   });
 }
 
+const leaderboardBtn = $('btn-leaderboard');
+if (leaderboardBtn) {
+  leaderboardBtn.addEventListener('click', () => {
+    audio.unlock();
+    const leaderboardUrl = new URL('./leaderboard-demo.html', window.location.href).toString();
+    window.open(leaderboardUrl, '_blank', 'noopener,noreferrer');
+  });
+}
+
 const botBtn = $('btn-bot');
 if (botBtn) {
   botBtn.addEventListener('click', () => {
     audio.unlock();
     toggleAutoplay();
+  });
+}
+
+const scoreSubmitBtn = $('btn-submit-score');
+if (scoreSubmitBtn) {
+  scoreSubmitBtn.addEventListener('click', async () => {
+    submitScoreToLeaderboard();
+    setLeaderboardSubmitVisible(false);
+    showScreen(null);
+    await startGame();
+  });
+}
+
+const scoreSubmitBtnBeaten = $('btn-submit-score-beaten');
+if (scoreSubmitBtnBeaten) {
+  scoreSubmitBtnBeaten.addEventListener('click', async () => {
+    submitScoreToLeaderboard();
+    setLeaderboardSubmitVisible(false);
+    showScreen(null);
+    await startGame();
   });
 }
 

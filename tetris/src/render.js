@@ -154,7 +154,7 @@ export class Renderer {
   }
 
   ghost(ctx, px, py, size, key) {
-    const c = COLORS[key];
+    const c = this.colorTheme[key] || COLORS[key];
     const inset = Math.max(1.5, size * 0.11);
     ctx.save();
     ctx.beginPath();
@@ -290,15 +290,6 @@ export class Renderer {
     ctx.fillStyle = shaft;
     ctx.fillRect(0, 0, w, h);
 
-    const danger = game.danger;
-    if (danger > 0.01) {
-      const dg = ctx.createLinearGradient(0, 0, 0, h * 0.55);
-      dg.addColorStop(0, `rgba(255,91,127,${0.3 * danger})`);
-      dg.addColorStop(1, 'rgba(255,91,127,0)');
-      ctx.fillStyle = dg;
-      ctx.fillRect(0, 0, w, h * 0.55);
-    }
-
     if (this.showGrid) {
       ctx.save();
       ctx.strokeStyle = `rgba(${tint},0.06)`;
@@ -390,7 +381,7 @@ export class Renderer {
     ctx.globalCompositeOperation = 'lighter';
     for (const t of fx.trails) {
       const k = 1 - t.age / t.life;
-      const c = COLORS[t.key];
+      const c = this.colorTheme[t.key] || COLORS[t.key];
       const x = t.col * this.cell;
       const y1 = (t.toRow - HIDDEN_ROWS) * this.cell;
       // only streak the last stretch of the fall so long drops do not paint the whole well

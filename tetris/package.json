@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "A guideline-style Tetris with SRS, wall kicks, T-spins and a synthesized chiptune soundtrack.",
   "private": true,
+  "type": "module",
   "main": "electron-main.cjs",
   "scripts": {
-    "start": "electron . --no-sandbox"
+    "start": "electron . --no-sandbox",
+    "server": "node server.js"
   },
   "build": {
     "appId": "com.fishthatstuff.tetris",

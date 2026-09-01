@@ -12,6 +12,10 @@ export const BG_PRESETS = {
   reef: 'Reef',
   ink: 'Ink',
   tide: 'Tide',
+  aurora: 'Aurora',
+  ember: 'Ember',
+  dusk: 'Dusk',
+  frost: 'Frost',
   custom: 'Custom'
 };
 
@@ -24,7 +28,22 @@ const GRADIENTS = {
         repeating-linear-gradient(118deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 26px)`,
   tide: `linear-gradient(180deg, color-mix(in srgb, var(--aqua) 22%, transparent), transparent 46%),
          linear-gradient(0deg, color-mix(in srgb, var(--blue) 34%, transparent), transparent 52%),
-         repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 7px)`
+         repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 7px)`,
+  aurora: `radial-gradient(680px 560px at 20% 18%, rgba(83, 255, 220, 0.22), transparent 64%),
+          radial-gradient(720px 540px at 72% 28%, rgba(126, 132, 255, 0.22), transparent 68%),
+          linear-gradient(180deg, rgba(6, 20, 28, 0.1), rgba(4, 12, 20, 0.7)),
+          repeating-linear-gradient(90deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 16px)`,
+  ember: `radial-gradient(780px 520px at 30% 12%, rgba(255, 150, 80, 0.34), transparent 62%),
+         radial-gradient(720px 640px at 68% 70%, rgba(255, 80, 120, 0.34), transparent 70%),
+         linear-gradient(180deg, rgba(17, 6, 9, 0.18), rgba(10, 4, 5, 0.82))`,
+  dusk: `radial-gradient(660px 620px at 50% 16%, rgba(180, 154, 255, 0.22), transparent 62%),
+        radial-gradient(760px 560px at 18% 74%, rgba(70, 135, 255, 0.18), transparent 68%),
+        linear-gradient(180deg, rgba(12, 10, 28, 0.18), rgba(8, 6, 20, 0.82)),
+        repeating-linear-gradient(120deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 18px)`,
+  frost: `radial-gradient(760px 620px at 25% 20%, rgba(188, 234, 255, 0.18), transparent 62%),
+         radial-gradient(720px 560px at 80% 72%, rgba(120, 179, 255, 0.16), transparent 70%),
+         linear-gradient(180deg, rgba(5, 17, 24, 0.08), rgba(3, 11, 18, 0.8)),
+         repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 9px)`
 };
 
 function hexToHsl(hex) {
