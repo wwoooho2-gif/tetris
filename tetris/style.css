@@ -73,6 +73,41 @@ body::before {
   transition: filter .12s ease-out, transform .12s ease-out;
 }
 
+.vhs-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0.32;
+  mix-blend-mode: screen;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.08), transparent 18%, transparent 82%, rgba(255,255,255,0.06)),
+    repeating-linear-gradient(180deg, rgba(255,255,255,0.12) 0 1px, rgba(0,0,0,0.12) 1px 2px, transparent 2px 4px),
+    repeating-linear-gradient(90deg, rgba(255, 0, 123, 0.06), rgba(0, 230, 255, 0.05) 2px, rgba(255,255,255,0.04) 2px, rgba(255,255,255,0.01) 4px),
+    radial-gradient(circle at 20% 25%, rgba(255,0,160,0.09), transparent 25%),
+    radial-gradient(circle at 80% 65%, rgba(0,255,210,0.08), transparent 28%);
+  animation: vhsFlicker 0.12s steps(2) infinite, vhsScan 8s linear infinite;
+}
+
+.vhs-overlay::before,
+.vhs-overlay::after {
+  content: "";
+  position: absolute;
+  inset: -10%;
+}
+
+.vhs-overlay::before {
+  background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.15) 46%, transparent 54%);
+  filter: blur(2px);
+  animation: vhsGlitch 3.4s ease-in-out infinite alternate;
+}
+
+.vhs-overlay::after {
+  background: repeating-linear-gradient(180deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 6px);
+  opacity: 0.8;
+  mix-blend-mode: multiply;
+}
+
 body::after {
   content: "";
   position: fixed;
@@ -80,38 +115,29 @@ body::after {
   pointer-events: none;
   background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px);
   z-index: 6;
+  animation: vhsScan 8s linear infinite;
 }
 
-body.vr-mode {
-  background: #000;
+@keyframes vhsFlicker {
+  0% { opacity: 0.22; }
+  15% { opacity: 0.34; }
+  35% { opacity: 0.18; }
+  55% { opacity: 0.32; }
+  80% { opacity: 0.25; }
+  100% { opacity: 0.36; }
 }
 
-body.vr-mode .app {
-  width: 100vw;
-  height: 100dvh;
-  transform: none;
-  padding: 10px 12px 12px;
+@keyframes vhsScan {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(12px); }
 }
 
-body.vr-mode .topbar {
-  padding-bottom: 4px;
-}
-
-body.vr-mode .topbar-actions { justify-content: center; }
-
-body.vr-mode .vr-toggle { display: inline-flex; }
-
-body.vr-mode .brand h1 {
-  font-size: clamp(18px, 3vw, 28px);
-}
-
-body.vr-mode .chip {
-  font-size: 11px;
-  padding: 10px 12px 8px;
-}
-
-body.vr-mode .stage {
-  gap: 10px;
+@keyframes vhsGlitch {
+  0%, 100% { transform: translateX(0) skewX(0deg); opacity: 0.35; }
+  20% { transform: translateX(-2px) skewX(-0.7deg); opacity: 0.52; }
+  40% { transform: translateX(2px) skewX(0.8deg); opacity: 0.28; }
+  60% { transform: translateX(-1px) skewX(-0.5deg); opacity: 0.46; }
+  80% { transform: translateX(1px) skewX(0.6deg); opacity: 0.38; }
 }
 
 .app {
@@ -644,55 +670,6 @@ kbd {
 
 .btn-row { display: flex; gap: 7px; }
 
-.leaderboard-submit {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: end;
-  margin: 14px 0 10px;
-  padding: 11px 12px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(64, 220, 245, 0.28);
-  background: linear-gradient(180deg, rgba(4, 20, 28, 0.9), rgba(8, 29, 41, 0.8));
-  box-shadow: inset 0 0 0 1px rgba(64, 220, 245, 0.08), 0 8px 20px rgba(4, 15, 22, 0.5);
-}
-
-.leaderboard-submit[hidden] {
-  display: none !important;
-}
-
-.leaderboard-submit .btn {
-  min-width: 138px;
-  width: auto;
-  padding-inline: 18px;
-}
-
-.leaderboard-input-wrap {
-  display: grid;
-  gap: 4px;
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.leaderboard-input-wrap input {
-  width: 100%;
-  border: 1px solid rgba(64, 220, 245, 0.35);
-  background: rgba(2, 12, 17, 0.88);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 9px 10px 8px;
-  font: inherit;
-  box-shadow: inset 0 0 0 1px rgba(64, 220, 245, 0.08);
-}
-
-.leaderboard-input-wrap input:focus {
-  outline: 1px solid rgba(64, 220, 245, 0.7);
-  border-color: rgba(64, 220, 245, 0.8);
-  box-shadow: 0 0 0 2px rgba(64, 220, 245, 0.12);
-}
-
 .btn-quiet {
   margin-top: 8px;
   font-size: 11px;
@@ -710,6 +687,16 @@ kbd {
   font-weight: 400;
   color: var(--aqua);
 }
+
+.music-link {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--aqua);
+  text-decoration: underline;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.music-link:hover { color: var(--text); }
 
 .opt-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
 
@@ -925,9 +912,6 @@ input[type="range"]::-moz-range-thumb {
     white-space: nowrap;
     flex: 1 1 0;
     min-width: 0;
-  }
-  .vr-toggle {
-    display: none !important;
   }
 
   .stage {

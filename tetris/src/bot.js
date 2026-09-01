@@ -189,7 +189,7 @@ export function planMove(game, learningBias = 0) {
 
 export class Bot {
   constructor() {
-    this.perBeat = 0.35;  // Base speed for piece drops; keep auto mode snappy
+    this.perBeat = 85;  // Slow bot speed
     this.plan = null;
     this.serial = -1;
     this.timer = 0;
@@ -206,6 +206,13 @@ export class Bot {
     this.winRate = 0;  // % of games reaching level 5+
     this.aggressionLevel = 1.0;  // 0.5 = defensive, 1.0 = balanced, 1.5 = aggressive
     this.learningEnabled = true;
+    
+    // SMART MODE: Pattern tracking and strategic analysis
+    this.pieceTypeStats = {};  // Track performance with each piece type
+    this.dangerThreshold = 6;  // How many rows from top before panic mode
+    this.consecutiveFailures = 0;  // Track failure streaks
+    this.boardHeightHistory = [];  // Track board height over time
+    this.tetrisStreak = 0;  // Track consecutive tetris clears
   }
 
   getStats() {
@@ -217,7 +224,8 @@ export class Bot {
       avgScore: Math.round(this.avgScore),
       avgLines: Math.round(this.avgLines),
       aggression: this.aggressionLevel.toFixed(2),
-      games: this.gameHistory.length
+      games: this.gameHistory.length,
+      tetrisStreak: this.tetrisStreak  // Show tetris momentum
     };
   }
 
@@ -227,11 +235,13 @@ export class Bot {
     this.aligned = false;
     this.tries = 0;
     this.timer = 0;
-    this.perBeat = Math.max(0.25, 0.35 - this.skill * 0.05);
+    this.perBeat = Math.max(1, 85 - this.skill * 0.5);
   }
 
   recordFailure(score = 0, lines = 0, level = 1) {
     this.failures += 1;
+    this.consecutiveFailures += 1;
+    this.tetrisStreak = 0;  // Reset tetris streak on failure
     
     // Record game result for learning
     if (this.learningEnabled) {
@@ -251,7 +261,7 @@ export class Bot {
     
     const gain = 0.55 + Math.max(0, 80 - score) / 120 + Math.max(0, 20 - lines) / 18;
     this.failureBias = Math.min(12, this.failureBias + gain);
-    this.skill = Math.min(8, this.skill + gain * 0.75 + 0.2);
+    this.skill = Math.min(12, this.skill + gain * 0.75 + 0.2);
     this.perBeat = Math.max(0.25, 0.35 - this.skill * 0.05);
   }
 
@@ -263,43 +273,99 @@ export class Bot {
     this.avgLines = this.gameHistory.reduce((sum, g) => sum + g.lines, 0) / this.gameHistory.length;
     this.winRate = this.gameHistory.filter(g => g.success).length / this.gameHistory.length;
     
+    // SMART: Detect losing streak and boost safety
+    if (this.consecutiveFailures > 3) {
+      this.failureBias = Math.min(15, this.failureBias + 0.5);
+      this.aggressionLevel = Math.max(0.3, this.aggressionLevel - 0.2);
+    }
+    
     // Self-adapt: if winning, become more aggressive; if losing, become more defensive
     if (this.winRate > 0.6) {
       this.aggressionLevel = Math.min(1.8, this.aggressionLevel + 0.1);
-      this.failureBias = Math.max(0, this.failureBias - 0.2);  // Less defensive
+      this.failureBias = Math.max(0, this.failureBias - 0.2);
+      this.consecutiveFailures = 0;  // Reset failure counter on success
     } else if (this.winRate < 0.3) {
       this.aggressionLevel = Math.max(0.5, this.aggressionLevel - 0.15);
-      this.failureBias = Math.min(10, this.failureBias + 0.3);  // More defensive
+      this.failureBias = Math.min(10, this.failureBias + 0.3);
     }
     
-    // Adapt speed based on performance
-    if (this.avgScore > 5000) {
-      this.perBeat = Math.max(0.35, this.perBeat - 0.05);  // Speed up if doing well
-    } else if (this.avgScore < 1000) {
-      this.perBeat = Math.min(1.2, this.perBeat + 0.08);  // Slow down if struggling
-    }
+    this.perBeat = Math.max(0.25, 0.35 - this.skill * 0.05);
   }
 
   recordSuccess(lines = 0) {
     // Positive reinforcement for clears
     if (this.learningEnabled) {
-      this.skill = Math.min(8, this.skill + 0.05 * lines);
+      this.skill = Math.min(12, this.skill + 0.05 * lines);
+      
+      // SMART: Track tetris clears for momentum
+      if (lines === 4) {
+        this.tetrisStreak += 1;
+        // Boost aggression on tetris streak
+        this.aggressionLevel = Math.min(1.9, this.aggressionLevel + 0.15);
+      } else {
+        this.tetrisStreak = 0;
+      }
     }
+  }
+
+  analyzeBoardHeight(game) {
+    // SMART: Calculate board height to detect danger
+    let maxHeight = 0;
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if (game.grid[y][x]) {
+          maxHeight = Math.max(maxHeight, ROWS - y);
+        }
+      }
+    }
+    return maxHeight;
+  }
+  
+  getBoardPressure(game) {
+    // SMART: Assess how dangerous the current board state is
+    const height = this.analyzeBoardHeight(game);
+    const pressure = height / ROWS;  // 0 = empty, 1 = full height
+    
+    if (this.boardHeightHistory.length > 3) {
+      this.boardHeightHistory.shift();
+    }
+    this.boardHeightHistory.push(height);
+    
+    // Detect rising trend (getting worse)
+    let trend = 0;
+    if (this.boardHeightHistory.length > 1) {
+      for (let i = 1; i < this.boardHeightHistory.length; i++) {
+        if (this.boardHeightHistory[i] > this.boardHeightHistory[i-1]) trend += 1;
+      }
+    }
+    
+    return { pressure, trend };
   }
 
   update(dt, game, audio) {
     if (!game.active || game.state !== 'playing') return;
 
-    this.failureBias = Math.max(0, this.failureBias * 0.98);  // Decay slower to learn better
+    this.failureBias = Math.max(0, this.failureBias * 0.98);
     this.skill = Math.max(0, this.skill * 0.992);
 
+    // SMART: Analyze board state for dynamic strategy adjustment
+    const boardState = this.getBoardPressure(game);
+    if (boardState.pressure > 0.7) {
+      // PANIC MODE: Board getting full - boost safety bias
+      this.failureBias = Math.min(15, this.failureBias + 0.3);
+      this.aggressionLevel = Math.max(0.5, this.aggressionLevel - 0.1);
+    }
+    
     // Keep the user-configured bot speed; the AI can still improve placement quality without
     // forcing the bot to slow down on every update.
-    if (this.perBeat < 0.25) this.perBeat = 0.25;
+    if (this.perBeat < 1) this.perBeat = 1;
 
     if (this.serial !== game.pieceSerial) {
       this.serial = game.pieceSerial;
-      const learningBias = (this.failureBias + this.skill * 0.7) * this.aggressionLevel;
+      // SMART: Factor in board pressure and streak momentum
+      let learningBias = (this.failureBias + this.skill * 0.7) * this.aggressionLevel;
+      learningBias *= (1 + this.tetrisStreak * 0.2);  // Boost on tetris streak
+      learningBias *= (1 + boardState.pressure);  // Increase safety on full board
       this.plan = planMove(game, learningBias);
       this.aligned = false;
       this.tries = 0;
@@ -347,7 +413,7 @@ export class Bot {
   }
 
   due(dt, audio) {
-    const step = Math.max(0.25, this.perBeat);
+    const step = Math.max(1, this.perBeat);
     if (audio && audio.playing && audio.tickFired >= 0) {
       const threshold = Math.max(1, Math.round(step));
       return audio.tickFired % threshold === 0;

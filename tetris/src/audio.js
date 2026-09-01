@@ -155,16 +155,16 @@ const PULSE = [
   bar('Am', [['E5', 8], ['C5', 8]])
 ];
 
-// Arcade - fast-paced retro Tetris feel
-const ARCADE = [
-  bar('C', [['C5', 2], ['G4', 2], ['C5', 2], ['E5', 2], ['G5', 2], ['E5', 2], ['C5', 2], ['G4', 2]]),
-  bar('F', [['F4', 2], ['C4', 2], ['F4', 2], ['A4', 2], ['C5', 2], ['A4', 2], ['F4', 2], ['C4', 2]]),
-  bar('G', [['G4', 2], ['D4', 2], ['G4', 2], ['B4', 2], ['D5', 2], ['B4', 2], ['G4', 2], ['D4', 2]]),
-  bar('E', [['E4', 2], ['B3', 2], ['E4', 2], ['G#4', 2], ['B4', 2], ['G#4', 2], ['E4', 2], ['B3', 2]]),
-  bar('Am', [['A4', 4], ['E5', 2], ['A5', 2], ['G5', 4], ['E5', 4]]),
-  bar('Dm', [['D4', 4], ['A4', 2], ['D5', 2], ['F5', 4], ['D5', 4]]),
-  bar('G', [['G4', 4], ['D5', 2], ['G5', 2], ['F5', 4], ['D5', 4]]),
-  bar('C', [['C5', 8], ['G4', 8]])
+// OpenSea - retro melody with a shallower, fishy glide and watery timbre
+const OPENSEA = [
+  bar('C', [['C5', 2], ['G4', 2], ['A4', 2], ['E5', 2], ['G5', 2], ['E5', 2], ['D5', 2], ['G4', 2]]),
+  bar('F', [['F4', 2], ['C4', 2], ['F4', 2], ['A4', 2], ['C5', 2], ['A4', 2], ['G4', 2], ['C4', 2]]),
+  bar('G', [['G4', 2], ['D4', 2], ['E4', 2], ['B4', 2], ['D5', 2], ['B4', 2], ['A4', 2], ['D4', 2]]),
+  bar('E', [['E4', 2], ['B3', 2], ['C4', 2], ['G#4', 2], ['B4', 2], ['G#4', 2], ['E4', 2], ['B3', 2]]),
+  bar('Am', [['A4', 4], ['E5', 2], ['G5', 2], ['A5', 2], ['G5', 2], ['E5', 2], ['C5', 2], ['A4', 2]]),
+  bar('Dm', [['D4', 4], ['A4', 2], ['C5', 2], ['F5', 2], ['E5', 2], ['D5', 2], ['A4', 2], ['F4', 2]]),
+  bar('G', [['G4', 4], ['D5', 2], ['E5', 2], ['G5', 2], ['F5', 2], ['E5', 2], ['D5', 2], ['B4', 2]]),
+  bar('C', [['C5', 4], ['G4', 4], ['A4', 4], ['E5', 4]])
 ];
 
 // Trench - extreme dark aggressive theme for extreme difficulty
@@ -202,57 +202,12 @@ export const MUSIC_THEMES = {
     kick: true,
     hat: true
   },
-  undertow: {
-    name: 'Undertow',
-    bpm: 166,
-    bars: UNDERTOW,
-    lead: { type: 'sawtooth', gain: 0.065, octave: false, sustain: 0.7 },
-    bass: { type: 'square', gain: 0.1, pattern: 'drive' },
-    kick: true,
-    hat: true
-  },
-  slack: {
-    name: 'Slack tide',
-    bpm: 94,
-    bars: SLACK,
-    lead: { type: 'sine', gain: 0.14, octave: true, sustain: 1 },
-    bass: { type: 'sine', gain: 0.17, pattern: 'hold' },
-    kick: false,
-    hat: false
-  },
-  sonar: {
-    name: 'Sonar',
-    bpm: 118,
-    bars: SONAR,
-    lead: { type: 'sine', gain: 0.17, octave: false, sustain: 2.4 },
-    bass: { type: 'sine', gain: 0.2, pattern: 'hold' },
-    kick: true,
-    hat: false
-  },
   lagoon: {
     name: 'Lagoon',
     bpm: 132,
     bars: LAGOON,
     lead: { type: 'triangle', gain: 0.12, octave: true, sustain: 1.1 },
     bass: { type: 'sine', gain: 0.16, pattern: 'walk' },
-    kick: true,
-    hat: true
-  },
-  afterglow: {
-    name: 'Afterglow',
-    bpm: 128,
-    bars: AFTERGLOW,
-    lead: { type: 'sawtooth', gain: 0.09, octave: true, sustain: 1.2 },
-    bass: { type: 'triangle', gain: 0.14, pattern: 'drive' },
-    kick: true,
-    hat: true
-  },
-  nightdrive: {
-    name: 'Night Drive',
-    bpm: 154,
-    bars: NIGHTDRIVE,
-    lead: { type: 'square', gain: 0.1, octave: true, sustain: 0.9 },
-    bass: { type: 'square', gain: 0.15, pattern: 'drive' },
     kick: true,
     hat: true
   },
@@ -265,40 +220,13 @@ export const MUSIC_THEMES = {
     kick: true,
     hat: false
   },
-  pulse: {
-    name: 'Pulse',
-    bpm: 140,
-    bars: PULSE,
-    lead: { type: 'square', gain: 0.095, octave: true, sustain: 0.85 },
-    bass: { type: 'square', gain: 0.15, pattern: 'drive' },
+  korobeiniki: {
+    name: 'OpenSea',
+    bpm: 132,
+    bars: OPENSEA,
+    lead: { type: 'sine', gain: 0.12, octave: true, sustain: 1.5 },
+    bass: { type: 'triangle', gain: 0.16, pattern: 'walk' },
     kick: true,
-    hat: true
-  },
-  arcade: {
-    name: 'Arcade',
-    bpm: 176,
-    bars: ARCADE,
-    lead: { type: 'square', gain: 0.11, octave: true, sustain: 0.7 },
-    bass: { type: 'square', gain: 0.16, pattern: 'drive' },
-    kick: true,
-    hat: true
-  },
-  trench: {
-    name: 'Trench',
-    bpm: 190,
-    bars: TRENCH,
-    lead: { type: 'sawtooth', gain: 0.12, octave: false, sustain: 0.6 },
-    bass: { type: 'square', gain: 0.18, pattern: 'drive' },
-    kick: true,
-    hat: true
-  },
-  ambient: {
-    name: 'Ambient',
-    bpm: 70,
-    bars: AMBIENT,
-    lead: { type: 'sine', gain: 0.08, octave: false, sustain: 2.8 },
-    bass: { type: 'sine', gain: 0.12, pattern: 'hold' },
-    kick: false,
     hat: false
   }
 };
@@ -523,7 +451,7 @@ export class AudioEngine {
   async startMusic(level = 1) {
     if (!this.ctx) return;
     if (this.ctx.state === 'suspended') await this.ctx.resume().catch(() => {});
-    if (this.playing) return;
+    if (this.playing) this.stopMusic();
     this.playing = true;
     this.bar = 0;
     this.ticks.length = 0;
@@ -552,9 +480,15 @@ export class AudioEngine {
     this.themeKey = key;
     this.theme = MUSIC_THEMES[key];
     this.bar = 0;
+    this.ticks.length = 0;
     this.setTempo(level, speed);
+
     if (this.playing && this.ctx) {
-      this.ticks.length = 0;
+      this.stopMusic();
+      this.playing = true;
+      this.nextBarTime = this.ctx.currentTime + 0.12;
+      this.timer = setInterval(() => this.schedule(), 40);
+    } else if (this.ctx) {
       this.nextBarTime = this.ctx.currentTime + 0.1;
     }
   }

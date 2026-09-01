@@ -10,6 +10,7 @@
 </head>
 <body>
 <div class="bg-layer" id="bg-layer"></div>
+<div class="vhs-overlay" aria-hidden="true"></div>
 <div class="app">
   <header class="topbar">
     <div class="brand">
@@ -22,7 +23,6 @@
     <div class="topbar-actions">
       <button class="chip chip-bot" id="btn-bot" type="button" aria-pressed="false">Auto play</button>
       <button class="chip" id="btn-sound" type="button" aria-pressed="true">Music</button>
-      <button class="chip vr-toggle" id="btn-vr" type="button" aria-pressed="false">VR mode</button>
       <button class="chip" id="btn-settings" type="button" aria-label="Settings">Settings</button>
     </div>
   </header>
@@ -111,11 +111,6 @@
                 <output id="out-das">120 ms</output>
               </label>
               <label class="setting">
-                <span>Bot tempo</span>
-                <input type="range" id="opt-bot" min="1" max="4" step="1" value="2">
-                <output id="out-bot">2/beat</output>
-              </label>
-              <label class="setting">
                 <span>Refresh</span>
                 <input type="range" id="opt-refresh" min="60" max="360" step="10" value="120">
                 <output id="out-refresh">120 Hz</output>
@@ -192,13 +187,6 @@
               <div><span>Lines</span><b id="over-lines">0</b></div>
               <div><span>Level</span><b id="over-level">1</b></div>
             </div>
-            <div class="leaderboard-submit" id="leaderboard-submit" hidden>
-              <label class="leaderboard-input-wrap" for="leaderboard-name">
-                <span>Player</span>
-                <input id="leaderboard-name" maxlength="12" placeholder="Your name" autocomplete="off">
-              </label>
-              <button class="btn btn-primary" id="btn-submit-score" type="button">Submit score</button>
-            </div>
             <button class="btn btn-primary" data-cmd="start" type="button">Cast again</button>
             <p class="hint">or press <kbd>R</kbd></p>
           </div>
@@ -216,13 +204,6 @@
               <div><span>Final Score</span><b id="beaten-score">0</b></div>
               <div><span>Lines</span><b id="beaten-lines">0</b></div>
               <div><span>Level</span><b id="beaten-level">9999</b></div>
-            </div>
-            <div class="leaderboard-submit" id="leaderboard-submit-beaten" hidden>
-              <label class="leaderboard-input-wrap" for="leaderboard-name-beaten">
-                <span>Player</span>
-                <input id="leaderboard-name-beaten" maxlength="12" placeholder="Your name" autocomplete="off">
-              </label>
-              <button class="btn btn-primary" id="btn-submit-score-beaten" type="button">Submit score</button>
             </div>
             <button class="btn btn-primary" data-cmd="start" type="button">Play Again</button>
             <p class="hint">or press <kbd>R</kbd></p>

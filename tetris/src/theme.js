@@ -119,6 +119,9 @@ export function applyUiTheme(key, customHex) {
   root.setProperty('--mint', stops[0]);
   root.setProperty('--aqua', stops[1]);
   root.setProperty('--blue', stops[2]);
+  root.setProperty('--bg-color-1', stops[0]);
+  root.setProperty('--bg-color-2', stops[1]);
+  root.setProperty('--bg-color-3', stops[2]);
 
   const [h, s] = hexToHsl(base);
   root.setProperty('--line', hsl(h, clamp(s * 0.55, 12, 48), 23));

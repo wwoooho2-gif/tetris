@@ -94,6 +94,42 @@ export const COLOR_THEMES = {
     P: { light: '#d0f0ff', base: '#a0e8ff', dark: '#6accff' },
     X: { light: '#f0f0ff', base: '#e0e0ff', dark: '#b0b0ff' },
     Q: { light: '#e0d0ff', base: '#d0a8ff', dark: '#a070ff' }
+  },
+  sunset: {
+    I: { light: '#ffd7a8', base: '#ff9f43', dark: '#b85c00' },
+    J: { light: '#ffc1d9', base: '#ff5d8f', dark: '#a1124d' },
+    L: { light: '#ffd6a5', base: '#ffa94d', dark: '#b9681a' },
+    O: { light: '#ffe8a3', base: '#f7c948', dark: '#a77d00' },
+    S: { light: '#ffd6a5', base: '#ff8c42', dark: '#b45500' },
+    T: { light: '#ffd6ff', base: '#d86cff', dark: '#7e2c9f' },
+    Z: { light: '#ffc9c9', base: '#ff6b6b', dark: '#ac1f1f' },
+    P: { light: '#ffb3f2', base: '#ff5ce1', dark: '#a00d96' },
+    X: { light: '#ffe7a3', base: '#ffd166', dark: '#9d7b00' },
+    Q: { light: '#ffb3b3', base: '#ff4d4d', dark: '#a30000' }
+  },
+  aurora: {
+    I: { light: '#d9fff4', base: '#5ef2d6', dark: '#1b9f87' },
+    J: { light: '#d7f7ff', base: '#59b9ff', dark: '#1b6bb8' },
+    L: { light: '#dfffe6', base: '#7fe38a', dark: '#2d8b4c' },
+    O: { light: '#dfffb8', base: '#c8ef5e', dark: '#7a9d17' },
+    S: { light: '#d9ffe9', base: '#68e39d', dark: '#1f9150' },
+    T: { light: '#d8d2ff', base: '#9d8cff', dark: '#4f53b3' },
+    Z: { light: '#d9f0ff', base: '#7cc7ff', dark: '#2a6fb0' },
+    P: { light: '#efd9ff', base: '#c785ff', dark: '#6832a4' },
+    X: { light: '#ebfff0', base: '#9ef7b5', dark: '#2e9b5d' },
+    Q: { light: '#dffcff', base: '#6be4ff', dark: '#1f84b3' }
+  },
+  candy: {
+    I: { light: '#fff3c4', base: '#ffd166', dark: '#b67d00' },
+    J: { light: '#ffd8f0', base: '#ff87d6', dark: '#b2499a' },
+    L: { light: '#ffe0b2', base: '#ffb86c', dark: '#b45700' },
+    O: { light: '#fdf1b2', base: '#f7e062', dark: '#a98b00' },
+    S: { light: '#d9ffe8', base: '#6ee7a9', dark: '#1d8c5a' },
+    T: { light: '#e3d5ff', base: '#b08cff', dark: '#5d4fbe' },
+    Z: { light: '#ffd9e0', base: '#ff7ea8', dark: '#aa2d5d' },
+    P: { light: '#ffe4ff', base: '#ff8af7', dark: '#ad38b5' },
+    X: { light: '#fff0b3', base: '#ffd93d', dark: '#a98300' },
+    Q: { light: '#ffc8c8', base: '#ff7d7d', dark: '#ac2a2a' }
   }
 };
 

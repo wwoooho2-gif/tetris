@@ -13,7 +13,7 @@ import { Bot } from './bot.js';
 import { HIDDEN_ROWS, COLS, PIECES, COLOR_THEMES, getColorTheme } from './pieces.js';
 import { STAGES } from './stages.js';
 import { UI_THEMES, BG_PRESETS, applyUiTheme, applyBackground, readImageFile, wellFromHex } from './theme.js';
-import { canSubmitLeaderboard, normalizePlayerName } from './leaderboard.js';
+
 
 // ============================================================
 // Utility and DOM helpers
@@ -110,9 +110,7 @@ function updateBackgroundForLevel(level) {
  * Visual: ghost piece, grid, themes, backgrounds
  * Gameplay: stages, autoplay settings
  */
-const LEADERBOARD_KEY = 'tetris.leaderboard';
-const PLAYER_NAME_KEY = 'tetris.player-name';
-const LEADERBOARD_CHANNEL = 'fish-tetris-leaderboard';
+
 const settings = Object.assign(
   {
     music: 35,              // Music volume (0-100)
@@ -122,12 +120,11 @@ const settings = Object.assign(
     grid: true,             // Show grid lines
     bubbles: true,          // Show particle effects
     stages: true,           // Enable stage progression
-    musicOn: true,          // Play background music
+    musicOn: false,         // Background music disabled
     autoplay: false,        // Enable AI auto-play
-    botBeat: 1,             // Bot speed setting (1-4)
     refreshRate: 120,       // Target render refresh rate in Hz
     guiScale: 100,          // GUI scale percentage (80-170)
-    musicTheme: 'dockside', // Music style
+    musicTheme: 'retro',     // Korobeiniki / Коробейники
     uiTheme: 'fish',        // Color theme
     uiCustom: '#40dcf5',    // Custom UI color
     bgPreset: 'none',       // Background style
@@ -135,7 +132,6 @@ const settings = Object.assign(
     bgWell: false,          // Show background in game well
     fullscreen: false,      // Launch window in full-screen mode
     controlsVisible: true,  // Show the right-side controls list
-    vrMode: false,          // Use a headset-friendly presentation mode
     difficulty: 'normal',   // Game difficulty: easy, normal, hard, extreme,
     pieceTheme: 'default'   // Piece color theme: default, neon, pastel, fire, ice
   },
@@ -265,7 +261,6 @@ function applySettings() {
   audio.setSfxVolume(settings.sfx / 100);
   audio.toggleMusic(settings.musicOn);
   input.das = settings.das;
-  bot.perBeat = settings.botBeat;
   applyDifficultySettings();
   game.autoplay = settings.autoplay;
   game.setStages(settings.stages);
@@ -277,7 +272,6 @@ function applySettings() {
   const musicEl = $('opt-music');
   const sfxEl = $('opt-sfx');
   const dasEl = $('opt-das');
-  const botBeatEl = $('opt-bot');
   const refreshEl = $('opt-refresh');
   const guiScaleEl = $('opt-gui-scale');
   const ghostEl = $('opt-ghost');
@@ -289,7 +283,6 @@ function applySettings() {
   if (musicEl) musicEl.value = settings.music;
   if (sfxEl) sfxEl.value = settings.sfx;
   if (dasEl) dasEl.value = settings.das;
-  if (botBeatEl) botBeatEl.value = settings.botBeat;
   if (refreshEl) refreshEl.value = settings.refreshRate;
   if (guiScaleEl) {
     guiScaleEl.min = String(guiMin);
@@ -312,24 +305,28 @@ function applySettings() {
   const musicOut = $('out-music');
   const sfxOut = $('out-sfx');
   const dasOut = $('out-das');
-  const botOut = $('out-bot');
   const refreshOut = $('out-refresh');
   const guiScaleOut = $('out-gui-scale');
 
   if (musicOut) musicOut.textContent = `${settings.music}%`;
   if (sfxOut) sfxOut.textContent = `${settings.sfx}%`;
   if (dasOut) dasOut.textContent = `${settings.das} ms`;
-  if (botOut) botOut.textContent = `${settings.botBeat}/beat`;
   if (refreshOut) refreshOut.textContent = `${settings.refreshRate} Hz`;
   if (guiScaleOut) guiScaleOut.textContent = `${settings.guiScale}%`;
   const uiScale = compactMobile
     ? Math.min(1.6, Math.max(0.6, settings.guiScale / 100))
     : Math.min(1.7, Math.max(0.8, settings.guiScale / 100));
   document.documentElement.style.setProperty('--ui-scale', String(uiScale));
+  const shouldFull = Boolean(settings.fullscreen);
   const win = isElectronRuntime && electronApi && electronApi.remote ? electronApi.remote.getCurrentWindow() : null;
   if (win && typeof win.isFullScreen === 'function') {
-    const shouldFull = Boolean(settings.fullscreen);
     if (win.isFullScreen() !== shouldFull) win.setFullScreen(shouldFull);
+  } else if (typeof document !== 'undefined') {
+    if (shouldFull && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else if (!shouldFull && document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
   }
   const soundBtn = $('btn-sound');
   const botBtn = $('btn-bot');
@@ -338,104 +335,28 @@ function applySettings() {
   if (botBtn) botBtn.setAttribute('aria-pressed', String(settings.autoplay));
 
   const resultScreenVisible = !cards.over.hidden || !cards.beaten.hidden;
-  setLeaderboardSubmitVisible(Boolean(resultScreenVisible) && !settings.autoplay && !game.autoplay && game.score > 0);
 
   audio.setTheme(settings.musicTheme, game.level, game.stageSpeed);
   applyLook();
   localStorage.setItem('tetris.settings', JSON.stringify(settings));
 }
 
-function getLeaderboardEntries() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
-    return Array.isArray(raw) ? raw.filter(Boolean) : [];
-  } catch {
-    return [];
+
+
+function ensureMenuMusic() {
+  if (!settings.musicOn || !audio.ctx || audio.playing) return;
+  if (game.state === State.Ready || game.state === State.Over || game.state === State.Beaten || game.state === State.Paused) {
+    audio.setTheme(settings.musicTheme, game.level, game.stageSpeed);
+    audio.startMusic(game.level);
   }
-}
-
-function saveLeaderboardEntries(entries) {
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
-  window.dispatchEvent(new Event('leaderboard:updated'));
-
-  if ('BroadcastChannel' in window) {
-    const channel = new BroadcastChannel(LEADERBOARD_CHANNEL);
-    channel.postMessage({ type: 'leaderboard-update', entries });
-    channel.close();
-  }
-}
-
-function clearLeaderboard() {
-  saveLeaderboardEntries([]);
-}
-
-function getDefaultPlayerName() {
-  const savedName = localStorage.getItem(PLAYER_NAME_KEY);
-  return savedName && String(savedName).trim() ? String(savedName).trim() : 'PLAYER';
-}
-
-function syncLeaderboardNameInput(targetId) {
-  const input = targetId ? $(targetId) : null;
-  if (!input) return;
-  input.value = getDefaultPlayerName();
-}
-
-function submitScoreToLeaderboard() {
-  if (!canSubmitLeaderboard({ autoplay: settings.autoplay || game.autoplay, score: game.score, gameState: game.state })) return;
-  const playerName = (document.getElementById('leaderboard-name')?.value || document.getElementById('leaderboard-name-beaten')?.value || '').trim();
-  const safeName = normalizePlayerName(playerName || getDefaultPlayerName());
-  localStorage.setItem(PLAYER_NAME_KEY, safeName);
-
-  const entries = getLeaderboardEntries();
-  const scoreEntry = {
-    name: safeName,
-    score: Number(game.score) || 0,
-    lines: Number(game.lines) || 0,
-    level: Number(game.level) || 1,
-    date: new Date().toISOString()
-  };
-
-  entries.push(scoreEntry);
-  entries.sort((a, b) => (b.score - a.score) || (b.lines - a.lines));
-  saveLeaderboardEntries(entries.slice(0, 10));
-
-  const inputs = [
-    document.getElementById('leaderboard-name'),
-    document.getElementById('leaderboard-name-beaten')
-  ].filter(Boolean);
-  for (const input of inputs) input.value = safeName;
-}
-
-function setLeaderboardSubmitVisible(visible) {
-  const submitGroup = document.getElementById('leaderboard-submit');
-  const submitGroupBeaten = document.getElementById('leaderboard-submit-beaten');
-  const isAutoMode = Boolean(settings.autoplay || game.autoplay);
-  const allowSubmit = !isAutoMode && Boolean(visible) && canSubmitLeaderboard({
-    autoplay: isAutoMode,
-    score: game.score,
-    gameState: game.state
-  });
-
-  const applyVisibility = (node) => {
-    if (!node) return;
-    node.hidden = !allowSubmit;
-    node.style.display = allowSubmit ? '' : 'none';
-    node.setAttribute('aria-hidden', String(!allowSubmit));
-  };
-
-  applyVisibility(submitGroup);
-  applyVisibility(submitGroupBeaten);
 }
 
 function showScreen(name) {
   for (const key of Object.keys(cards)) cards[key].hidden = key !== name;
   overlay.hidden = !name;
   input.enabled = !name;
-
-  if (name === 'over' || name === 'beaten') {
-    setLeaderboardSubmitVisible(true);
-  } else {
-    setLeaderboardSubmitVisible(false);
+  if (name === 'ready' || name === 'paused' || name === 'over' || name === 'beaten') {
+    ensureMenuMusic();
   }
 }
 
@@ -462,16 +383,12 @@ async function startGame() {
   fx.clear();
   bot.reset();
   attract = 0;
-  clearLeaderboard();
   applyDifficultySettings();
   game.start();
   audio.setMuffled(false);
   audio.setTempo(game.level, game.stageSpeed);
   if (audio.musicOn && !audio.playing) await audio.startMusic(game.level);
   audio.play('start');
-  syncLeaderboardNameInput('leaderboard-name');
-  syncLeaderboardNameInput('leaderboard-name-beaten');
-  setLeaderboardSubmitVisible(false);
   showScreen(null);
   updateDiscordActivity();
 }
@@ -483,7 +400,6 @@ function toggleAutoplay(on) {
   game.scoreEligibleForBest = !game.autoplay;
   bot.reset();
   attract = 0;
-  setLeaderboardSubmitVisible(false);
   if (game.state === State.Over || game.state === State.Beaten) {
     showScreen(game.state === State.Over ? 'over' : 'beaten');
   }
@@ -498,21 +414,19 @@ function toggleAutoplay(on) {
     if (audio.musicOn && !audio.playing) audio.startMusic(game.level);
     audio.play('start');
     showScreen(null);
-  } else if (previous && !settings.autoplay) {
-    // kept for clarity; logic handled above
   }
 
   applySettings();
 }
 
 function togglePause() {
-  if (game.state === State.Over || game.state === State.Ready) return;
+  if (game.state === State.Over || game.state === State.Ready || game.state === State.Beaten) return;
   if (game.state === State.Paused) {
     game.pause(false);
     showScreen(null);
     audio.setMuffled(false);
     updateDiscordActivity();
-  } else {
+  } else if (game.state === State.Playing || game.state === State.Entry || game.state === State.Clearing) {
     game.pause(true);
     showScreen('paused');
     audio.setMuffled(true);
@@ -664,8 +578,6 @@ function onBeaten() {
     $('beaten-score').textContent = game.score.toLocaleString();
     $('beaten-lines').textContent = game.lines;
     $('beaten-level').textContent = game.level;
-    syncLeaderboardNameInput('leaderboard-name-beaten');
-    setLeaderboardSubmitVisible(true);
     showScreen('beaten');
     
     // Update Discord activity with victory
@@ -695,8 +607,6 @@ function onGameOver() {
   $('over-level').textContent = game.level;
   const isBestRun = game.score > 0 && game.scoreEligibleForBest && game.score >= game.best;
   $('over-title').textContent = isBestRun ? 'New personal best' : 'One that got away';
-  syncLeaderboardNameInput('leaderboard-name');
-  setLeaderboardSubmitVisible(!settings.autoplay && game.score > 0);
   showScreen('over');
   
   // Update Discord activity with final score
@@ -747,16 +657,9 @@ function updateHud() {
     hud.level.textContent = game.level;
     if (last.level >= 0) bump(hud.level);
     last.level = game.level;
-    
-    // Update background colors based on level
-    updateBackgroundForLevel(game.level);
-    
-    // Update background intensity based on level
-    // At level 256+, gradually increase visual intensity
-    let levelIntensity = 0;
-    if (game.level >= 256) {
-      levelIntensity = Math.min(1, (game.level - 256) / 100);
-    }
+
+    // Keep the page background locked to the selected theme instead of the current stage/level.
+    const levelIntensity = game.level >= 256 ? Math.min(1, (game.level - 256) / 100) : 0;
     document.documentElement.style.setProperty('--level-intensity', levelIntensity);
   }
   if (game.lines !== last.lines) {
@@ -817,7 +720,7 @@ function updateMultiplierBadge() {
 input.handlers = {
   any: () => audio.unlock(),
   pause: () => {
-    if (!cards.theme.hidden) showScreen(themeReturn);
+    if (!cards.theme.hidden) returnFromThemeScreen();
     else togglePause();
   },
   restart: () => startGame(),
@@ -830,16 +733,25 @@ input.handlers = {
     applySettings();
   },
   confirm: () => {
-    if (!cards.theme.hidden) showScreen(themeReturn);
+    if (!cards.theme.hidden) returnFromThemeScreen();
     else if (game.state === State.Ready || game.state === State.Over) startGame();
     else if (game.state === State.Paused) togglePause();
   }
 };
 input.attach();
 input.bindTouch($('touch'));
-document.addEventListener('pointerdown', () => audio.unlock(), { once: true });
-document.addEventListener('touchstart', () => audio.unlock(), { once: true });
-window.addEventListener('keydown', () => audio.unlock(), { once: true });
+document.addEventListener('pointerdown', async () => {
+  await audio.unlock();
+  if (settings.musicOn && !audio.playing) ensureMenuMusic();
+}, { once: true });
+document.addEventListener('touchstart', async () => {
+  await audio.unlock();
+  if (settings.musicOn && !audio.playing) ensureMenuMusic();
+}, { once: true });
+window.addEventListener('keydown', async () => {
+  await audio.unlock();
+  if (settings.musicOn && !audio.playing) ensureMenuMusic();
+}, { once: true });
 
 overlay.addEventListener('click', (e) => {
   const cmd = e.target.closest('[data-cmd]');
@@ -851,22 +763,33 @@ overlay.addEventListener('click', (e) => {
   else if (action === 'resume') togglePause();
   else if (action === 'restart') startGame();
   else if (action === 'customise') {
-    themeReturn = cards.paused.hidden ? 'ready' : 'paused';
+    const shouldPause = game.state === State.Playing || game.state === State.Entry || game.state === State.Clearing;
+    themeReturn = shouldPause ? 'paused' : (cards.paused.hidden ? 'ready' : 'paused');
+    if (shouldPause) {
+      game.pause(true);
+      audio.setMuffled(true);
+    }
     showScreen('theme');
-  } else if (action === 'back') showScreen(themeReturn);
+  } else if (action === 'back') returnFromThemeScreen();
 });
 
-// Close button handler for mobile / settings flows
-overlay.addEventListener('click', (e) => {
-  if (!e.target.closest('.card-close')) return;
-  e.stopPropagation();  // Prevent event from reaching other handlers
+function returnFromThemeScreen() {
+  if (game.state === State.Paused && themeReturn === 'paused') {
+    togglePause();
+    return;
+  }
+  showScreen(themeReturn || null);
+}
 
-  if (!cards.theme.hidden) {
-    showScreen(themeReturn);
+function closeCurrentOverlay() {
+  const active = Object.keys(cards).find((key) => !cards[key].hidden);
+
+  if (active === 'theme') {
+    returnFromThemeScreen();
     return;
   }
 
-  if (!cards.paused.hidden) {
+  if (active === 'paused') {
     if (game.state === State.Paused) {
       togglePause();
     } else {
@@ -875,7 +798,19 @@ overlay.addEventListener('click', (e) => {
     return;
   }
 
+  if (active === 'ready' || active === 'over' || active === 'beaten') {
+    showScreen(null);
+    return;
+  }
+
   showScreen(null);
+}
+
+// Close button handler for mobile / settings flows
+overlay.addEventListener('click', (e) => {
+  if (!e.target.closest('.card-close')) return;
+  e.stopPropagation();
+  closeCurrentOverlay();
 });
 
 // option pickers are built from the data so the markup stays short
@@ -1034,94 +969,12 @@ if (soundBtn) {
   });
 }
 
-let xrSession = null;
-
-async function finishVrMode(enabled) {
-  settings.vrMode = Boolean(enabled);
-  document.body.classList.toggle('vr-mode', settings.vrMode);
-  const vrBtn = $('btn-vr');
-  if (vrBtn) {
-    vrBtn.setAttribute('aria-pressed', String(settings.vrMode));
-    vrBtn.textContent = settings.vrMode ? 'Exit VR' : 'VR mode';
-  }
-  if (settings.vrMode) {
-    document.documentElement.style.setProperty('--ui-scale', '0.95');
-  } else {
-    applySettings();
-  }
-  if (window.dispatchEvent) {
-    window.dispatchEvent(new CustomEvent('vr-mode-toggle', { detail: { enabled: settings.vrMode } }));
-  }
-}
-
-async function startWebXRSession() {
-  const xrApi = navigator && navigator.xr;
-  if (!xrApi || typeof xrApi.requestSession !== 'function') {
-    console.warn('WebXR is not available in this browser. Falling back to the VR presentation mode.');
-    await finishVrMode(true);
-    return false;
-  }
-
-  try {
-    const supportsImmersiveVr = xrApi.isSessionSupported
-      ? await xrApi.isSessionSupported('immersive-vr')
-      : true;
-
-    if (!supportsImmersiveVr) {
-      console.warn('Immersive VR is not supported by this device.');
-      await finishVrMode(true);
-      return false;
-    }
-
-    const session = await xrApi.requestSession('immersive-vr', {
-      optionalFeatures: ['local-floor', 'hand-tracking', 'bounded-floor'],
-      requiredFeatures: ['local-floor']
-    });
-
-    xrSession = session;
-    session.addEventListener('end', () => {
-      xrSession = null;
-      finishVrMode(false);
-    });
-
-    await finishVrMode(true);
-    return true;
-  } catch (error) {
-    console.warn('Unable to start immersive VR session.', error);
-    await finishVrMode(true);
-    return false;
-  }
-}
-
-async function stopWebXRSession() {
-  if (xrSession && typeof xrSession.end === 'function') {
-    await xrSession.end();
-    return;
-  }
-  await finishVrMode(false);
-}
-
-const vrBtn = $('btn-vr');
-if (vrBtn) {
-  vrBtn.addEventListener('click', async () => {
-    audio.unlock();
-    if (settings.vrMode && xrSession) {
-      await stopWebXRSession();
-      return;
-    }
-    if (settings.vrMode) {
-      await stopWebXRSession();
-      return;
-    }
-    await startWebXRSession();
-  });
-}
 
 const settingsBtn = $('btn-settings');
 if (settingsBtn) {
   settingsBtn.addEventListener('click', () => {
     audio.unlock();
-    if (game.state === State.Playing) {
+    if (game.state === State.Playing || game.state === State.Entry || game.state === State.Clearing) {
       themeReturn = 'paused';
       game.pause(true);
       showScreen('paused');
@@ -1144,25 +997,6 @@ if (botBtn) {
   });
 }
 
-const scoreSubmitBtn = $('btn-submit-score');
-if (scoreSubmitBtn) {
-  scoreSubmitBtn.addEventListener('click', async () => {
-    submitScoreToLeaderboard();
-    setLeaderboardSubmitVisible(false);
-    showScreen(null);
-    await startGame();
-  });
-}
-
-const scoreSubmitBtnBeaten = $('btn-submit-score-beaten');
-if (scoreSubmitBtnBeaten) {
-  scoreSubmitBtnBeaten.addEventListener('click', async () => {
-    submitScoreToLeaderboard();
-    setLeaderboardSubmitVisible(false);
-    showScreen(null);
-    await startGame();
-  });
-}
 
 // Difficulty selector buttons
 ['easy', 'normal', 'hard', 'extreme'].forEach((diff) => {
@@ -1198,7 +1032,6 @@ const bindRange = (id, key) => {
 bindRange('opt-music', 'music');
 bindRange('opt-sfx', 'sfx');
 bindRange('opt-das', 'das');
-bindRange('opt-bot', 'botBeat');
 bindRange('opt-refresh', 'refreshRate');
 bindRange('opt-gui-scale', 'guiScale');
 
@@ -1261,9 +1094,12 @@ function frame(now) {
   frameAccumulator += dt;
 
   audio.poll(dt);
-  root.style.setProperty('--beat', audio.pulse.toFixed(3));
-  root.style.setProperty('--flash', (Math.min(1, fx.flash * 1.6)).toFixed(3));
-  root.style.setProperty('--pulse', (Math.max(audio.pulse, fx.flash)).toFixed(3));
+  const beat = audio.pulse.toFixed(3);
+  const flash = (Math.min(1, fx.flash * 1.6)).toFixed(3);
+  const pulse = (Math.max(audio.pulse, fx.flash)).toFixed(3);
+  if (root.style.getPropertyValue('--beat') !== beat) root.style.setProperty('--beat', beat);
+  if (root.style.getPropertyValue('--flash') !== flash) root.style.setProperty('--flash', flash);
+  if (root.style.getPropertyValue('--pulse') !== pulse) root.style.setProperty('--pulse', pulse);
 
   if (settings.autoplay) {
     if (game.state === State.Playing) bot.update(dt, game, audio);

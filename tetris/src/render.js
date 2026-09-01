@@ -55,6 +55,10 @@ export class Renderer {
     this.backdropAlpha = 1;
     this.activeStage = STAGES[0];
     this.t = 0;
+    this.wellGradients = new Map();
+    this.shaftGradients = new Map();
+    this.frameGradients = new Map();
+    this.trailGradients = new Map();
   }
 
   resize() {
@@ -271,22 +275,33 @@ export class Renderer {
       ctx.restore();
     }
 
-    const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, stage.top);
-    g.addColorStop(0.55, stage.mid);
-    g.addColorStop(1, stage.bottom);
+    const gKey = `${stage.top}:${stage.mid}:${stage.bottom}:${w}:${h}`;
+    let g = this.wellGradients.get(gKey);
+    if (!g) {
+      g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, stage.top);
+      g.addColorStop(0.55, stage.mid);
+      g.addColorStop(1, stage.bottom);
+      this.wellGradients.set(gKey, g);
+    }
+
     ctx.save();
     if (showBackdrop) ctx.globalAlpha = 0.62;
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
     ctx.restore();
 
-    // slow light shaft drifting across the water
-    const shaft = ctx.createLinearGradient(0, 0, w, h);
-    const s = (Math.sin(this.t * 0.25) + 1) / 2;
-    shaft.addColorStop(Math.max(0, s - 0.28), `rgba(${tint},0)`);
-    shaft.addColorStop(s, `rgba(${tint},0.07)`);
-    shaft.addColorStop(Math.min(1, s + 0.28), `rgba(${tint},0)`);
+    const shaftPhase = Math.floor(this.t / 0.08);
+    const shaftKey = `${tint}:${w}:${h}:${shaftPhase}`;
+    let shaft = this.shaftGradients.get(shaftKey);
+    if (!shaft) {
+      shaft = ctx.createLinearGradient(0, 0, w, h);
+      const s = (Math.sin(this.t * 0.25) + 1) / 2;
+      shaft.addColorStop(Math.max(0, s - 0.28), `rgba(${tint},0)`);
+      shaft.addColorStop(s, `rgba(${tint},0.07)`);
+      shaft.addColorStop(Math.min(1, s + 0.28), `rgba(${tint},0)`);
+      this.shaftGradients.set(shaftKey, shaft);
+    }
     ctx.fillStyle = shaft;
     ctx.fillRect(0, 0, w, h);
 
@@ -345,15 +360,24 @@ export class Renderer {
 
   drawFrame(ctx, w, h, game) {
     ctx.save();
-    const v = ctx.createRadialGradient(w / 2, h / 2, h * 0.35, w / 2, h / 2, h * 0.78);
-    v.addColorStop(0, 'rgba(0,0,0,0)');
-    v.addColorStop(1, 'rgba(0,0,0,0.45)');
+    const frameKey = `${w}:${h}`;
+    let v = this.frameGradients.get(`v:${frameKey}`);
+    if (!v) {
+      v = ctx.createRadialGradient(w / 2, h / 2, h * 0.35, w / 2, h / 2, h * 0.78);
+      v.addColorStop(0, 'rgba(0,0,0,0)');
+      v.addColorStop(1, 'rgba(0,0,0,0.45)');
+      this.frameGradients.set(`v:${frameKey}`, v);
+    }
     ctx.fillStyle = v;
     ctx.fillRect(0, 0, w, h);
 
-    const top = ctx.createLinearGradient(0, 0, 0, this.cell * 1.6);
-    top.addColorStop(0, 'rgba(0,0,0,0.55)');
-    top.addColorStop(1, 'rgba(0,0,0,0)');
+    let top = this.frameGradients.get(`top:${this.cell}`);
+    if (!top) {
+      top = ctx.createLinearGradient(0, 0, 0, this.cell * 1.6);
+      top.addColorStop(0, 'rgba(0,0,0,0.55)');
+      top.addColorStop(1, 'rgba(0,0,0,0)');
+      this.frameGradients.set(`top:${this.cell}`, top);
+    }
     ctx.fillStyle = top;
     ctx.fillRect(0, 0, w, this.cell * 1.6);
     ctx.restore();
@@ -384,12 +408,16 @@ export class Renderer {
       const c = this.colorTheme[t.key] || COLORS[t.key];
       const x = t.col * this.cell;
       const y1 = (t.toRow - HIDDEN_ROWS) * this.cell;
-      // only streak the last stretch of the fall so long drops do not paint the whole well
       const y0 = Math.max((t.fromRow - HIDDEN_ROWS) * this.cell, y1 - this.cell * 7);
-      const g = ctx.createLinearGradient(0, y0, 0, y1 + this.cell);
-      g.addColorStop(0, 'rgba(0,0,0,0)');
-      g.addColorStop(0.6, c.dark);
-      g.addColorStop(1, c.base);
+      const trailKey = `${t.key}:${this.cell}:${y0}:${y1}:${c.dark}:${c.base}`;
+      let g = this.trailGradients.get(trailKey);
+      if (!g) {
+        g = ctx.createLinearGradient(0, y0, 0, y1 + this.cell);
+        g.addColorStop(0, 'rgba(0,0,0,0)');
+        g.addColorStop(0.6, c.dark);
+        g.addColorStop(1, c.base);
+        this.trailGradients.set(trailKey, g);
+      }
       ctx.globalAlpha = k * k * 0.38;
       ctx.fillStyle = g;
       ctx.fillRect(x + this.cell * 0.22, y0, this.cell * 0.56, y1 - y0);

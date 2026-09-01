@@ -409,7 +409,11 @@ export class Game {
       this.state = State.Paused;
       this.emit('pause');
     } else if (!on && this.state === State.Paused) {
-      this.state = this.resumeState || State.Playing;
+      const resumeState = this.resumeState && [State.Playing, State.Entry, State.Clearing].includes(this.resumeState)
+        ? this.resumeState
+        : State.Playing;
+      this.state = resumeState;
+      this.resumeState = null;
       this.emit('resume');
     }
   }
