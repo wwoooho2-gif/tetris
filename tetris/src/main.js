@@ -137,6 +137,7 @@ const settings = Object.assign(
   },
   JSON.parse(localStorage.getItem('tetris.settings') || '{}')
 );
+let fullscreenToggleRequested = false;
 
 // ============================================================
 // Core game engine instances
@@ -322,10 +323,13 @@ function applySettings() {
   if (win && typeof win.isFullScreen === 'function') {
     if (win.isFullScreen() !== shouldFull) win.setFullScreen(shouldFull);
   } else if (typeof document !== 'undefined') {
-    if (shouldFull && !document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(() => {});
-    } else if (!shouldFull && document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {});
+    if (fullscreenToggleRequested) {
+      if (shouldFull && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      } else if (!shouldFull && document.fullscreenElement) {
+        document.exitFullscreen?.().catch(() => {});
+      }
+      fullscreenToggleRequested = false;
     }
   }
   const soundBtn = $('btn-sound');
@@ -748,10 +752,25 @@ document.addEventListener('touchstart', async () => {
   await audio.unlock();
   if (settings.musicOn && !audio.playing) ensureMenuMusic();
 }, { once: true });
-window.addEventListener('keydown', async () => {
+document.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
+});
+window.addEventListener('keydown', async (event) => {
+  const key = event.key || '';
+  const isDevtoolsCombo =
+    key === 'F12' ||
+    (event.ctrlKey && event.shiftKey && ['i', 'c', 'j'].includes(key.toLowerCase())) ||
+    (event.metaKey && event.altKey && key.toLowerCase() === 'i');
+
+  if (isDevtoolsCombo) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+
   await audio.unlock();
   if (settings.musicOn && !audio.playing) ensureMenuMusic();
-}, { once: true });
+}, { once: false });
 
 overlay.addEventListener('click', (e) => {
   const cmd = e.target.closest('[data-cmd]');
@@ -883,6 +902,18 @@ buildPicker(
     audio.play('hold');
   }
 );
+
+document.querySelectorAll('.theme-tab').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const view = btn.dataset.themeView;
+    document.querySelectorAll('.theme-tab').forEach((tab) => {
+      tab.classList.toggle('is-active', tab === btn);
+    });
+    document.querySelectorAll('.theme-panel').forEach((panel) => {
+      panel.hidden = panel.dataset.themePanel !== view;
+    });
+  });
+});
 
 $('bg-file').addEventListener('change', async (e) => {
   const file = e.target.files && e.target.files[0];
@@ -1055,6 +1086,7 @@ $('opt-stages').addEventListener('change', (e) => {
 
 $('opt-fullscreen').addEventListener('change', (e) => {
   settings.fullscreen = e.target.checked;
+  fullscreenToggleRequested = true;
   applySettings();
 });
 

@@ -125,7 +125,7 @@
                 <label class="toggle"><input type="checkbox" id="opt-ghost" checked><span>Ghost</span></label>
                 <label class="toggle"><input type="checkbox" id="opt-grid" checked><span>Grid</span></label>
                 <label class="toggle"><input type="checkbox" id="opt-bubbles" checked><span>Bubbles</span></label>
-                <label class="toggle"><input type="checkbox" id="opt-fullscreen"><span>Full screen</span></label>
+                <label class="toggle mobile-only-fullscreen"><input type="checkbox" id="opt-fullscreen"><span>Full screen</span></label>
               </div>
             </div>
             <div class="btn-row">
@@ -142,38 +142,45 @@
             <p class="eyebrow">Customise</p>
             <h2>Make it yours</h2>
 
-            <div class="opt-group">
-              <h3>Music</h3>
-              <div class="opt-row" id="pick-music"></div>
+            <div class="theme-tabs" aria-label="Theme menus">
+              <button class="theme-tab is-active" type="button" data-theme-view="style">Style</button>
+              <button class="theme-tab" type="button" data-theme-view="pieces">Piece colours</button>
             </div>
 
-            <div class="opt-group">
-              <h3>Colour</h3>
-              <div class="opt-row swatches" id="pick-colour"></div>
-              <label class="setting setting-inline">
-                <span>Custom</span>
-                <input type="color" id="opt-colour" value="#40dcf5">
-                <output id="out-colour">pick a shade</output>
-              </label>
-            </div>
-
-            <div class="opt-group">
-              <h3>Background</h3>
-              <div class="opt-row" id="pick-bg"></div>
-              <div class="btn-row">
-                <button class="btn btn-small" id="btn-bg-upload" type="button">Upload image</button>
-                <button class="btn btn-small" id="btn-bg-clear" type="button">Clear</button>
+            <div class="theme-panel" data-theme-panel="style">
+              <div class="opt-group">
+                <h3>Music</h3>
+                <div class="opt-row" id="pick-music"></div>
               </div>
-              <input type="file" id="bg-file" accept="image/*" hidden>
-              <p class="note" id="bg-note">No image loaded.</p>
+
+              <div class="opt-group">
+                <h3>Colour</h3>
+                <div class="opt-row swatches" id="pick-colour"></div>
+                <label class="setting setting-inline">
+                  <span>Custom</span>
+                  <input type="color" id="opt-colour" value="#40dcf5">
+                  <output id="out-colour">pick a shade</output>
+                </label>
+              </div>
+
+              <div class="opt-group">
+                <h3>Background</h3>
+                <div class="opt-row" id="pick-bg"></div>
+                <div class="btn-row">
+                  <button class="btn btn-small" id="btn-bg-upload" type="button">Upload image</button>
+                  <button class="btn btn-small" id="btn-bg-clear" type="button">Clear</button>
+                </div>
+                <input type="file" id="bg-file" accept="image/*" hidden>
+                <p class="note" id="bg-note">No image loaded.</p>
+              </div>
             </div>
 
-            <div class="opt-group">
-              <h3>Piece Colours</h3>
-              <div class="opt-row" id="pick-theme"></div>
+            <div class="theme-panel" data-theme-panel="pieces" hidden>
+              <div class="opt-group">
+                <h3>Piece colours</h3>
+                <div class="opt-row" id="pick-theme"></div>
+              </div>
             </div>
-
-            <button class="btn btn-primary" data-cmd="back" type="button">Done</button>
           </div>
         </section>
 
