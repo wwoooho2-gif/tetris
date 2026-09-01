@@ -344,19 +344,7 @@ function applySettings() {
   localStorage.setItem('tetris.settings', JSON.stringify(settings));
 }
 
-async function getLeaderboardEntries() {
-  try {
-    const response = await fetch('http://localhost:3001/api/leaderboard', {
-      cache: 'no-store'
-    });
-    if (response.ok) {
-      const data = await response.json();
-      return Array.isArray(data) ? data.filter(Boolean) : [];
-    }
-  } catch {
-    // Fall back to browser storage if the server is unavailable.
-  }
-
+function getLeaderboardEntries() {
   try {
     const raw = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
     return Array.isArray(raw) ? raw.filter(Boolean) : [];
@@ -365,13 +353,8 @@ async function getLeaderboardEntries() {
   }
 }
 
-async function saveLeaderboardEntries(entries) {
-  try {
-    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
-  } catch {
-    // Ignore storage failures in private modes or restricted browsers.
-  }
-
+function saveLeaderboardEntries(entries) {
+  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
   window.dispatchEvent(new Event('leaderboard:updated'));
 
   if ('BroadcastChannel' in window) {
@@ -379,27 +362,10 @@ async function saveLeaderboardEntries(entries) {
     channel.postMessage({ type: 'leaderboard-update', entries });
     channel.close();
   }
-
-  try {
-    await fetch('http://localhost:3001/api/leaderboard', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ entries })
-    });
-  } catch {
-    // Server is optional; keep local browser storage as fallback.
-  }
 }
 
-async function clearLeaderboard() {
-  try {
-    await fetch('http://localhost:3001/api/leaderboard', {
-      method: 'DELETE'
-    });
-  } catch {
-    // ignore server-side reset failure and keep local fallback
-  }
-  await saveLeaderboardEntries([]);
+function clearLeaderboard() {
+  saveLeaderboardEntries([]);
 }
 
 function getDefaultPlayerName() {
@@ -413,12 +379,13 @@ function syncLeaderboardNameInput(targetId) {
   input.value = getDefaultPlayerName();
 }
 
-async function submitScoreToLeaderboard() {
+function submitScoreToLeaderboard() {
   if (!canSubmitLeaderboard({ autoplay: settings.autoplay || game.autoplay, score: game.score, gameState: game.state })) return;
   const playerName = (document.getElementById('leaderboard-name')?.value || document.getElementById('leaderboard-name-beaten')?.value || '').trim();
   const safeName = normalizePlayerName(playerName || getDefaultPlayerName());
   localStorage.setItem(PLAYER_NAME_KEY, safeName);
 
+  const entries = getLeaderboardEntries();
   const scoreEntry = {
     name: safeName,
     score: Number(game.score) || 0,
@@ -427,27 +394,9 @@ async function submitScoreToLeaderboard() {
     date: new Date().toISOString()
   };
 
-  try {
-    const response = await fetch('http://localhost:3001/api/leaderboard', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(scoreEntry)
-    });
-    if (response.ok) {
-      const serverEntries = await response.json();
-      await saveLeaderboardEntries(Array.isArray(serverEntries) ? serverEntries : [scoreEntry]);
-    } else {
-      const entries = await getLeaderboardEntries();
-      entries.push(scoreEntry);
-      entries.sort((a, b) => (b.score - a.score) || (b.lines - a.lines));
-      await saveLeaderboardEntries(entries.slice(0, 10));
-    }
-  } catch {
-    const entries = await getLeaderboardEntries();
-    entries.push(scoreEntry);
-    entries.sort((a, b) => (b.score - a.score) || (b.lines - a.lines));
-    await saveLeaderboardEntries(entries.slice(0, 10));
-  }
+  entries.push(scoreEntry);
+  entries.sort((a, b) => (b.score - a.score) || (b.lines - a.lines));
+  saveLeaderboardEntries(entries.slice(0, 10));
 
   const inputs = [
     document.getElementById('leaderboard-name'),

@@ -359,17 +359,7 @@
     const LEADERBOARD_KEY = 'tetris.leaderboard';
     const LEADERBOARD_CHANNEL = 'fish-tetris-leaderboard';
 
-    async function getEntries() {
-      try {
-        const response = await fetch('http://localhost:3001/api/leaderboard', { cache: 'no-store' });
-        if (response.ok) {
-          const data = await response.json();
-          if (Array.isArray(data)) return data.filter(Boolean);
-        }
-      } catch {
-        // fall back to browser storage if the server is offline
-      }
-
+    function getEntries() {
       try {
         const raw = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
         return Array.isArray(raw) ? raw.filter(Boolean) : [];
@@ -378,17 +368,8 @@
       }
     }
 
-    async function getStats() {
-      try {
-        const response = await fetch('http://localhost:3001/api/leaderboard/stats', { cache: 'no-store' });
-        if (response.ok) {
-          return await response.json();
-        }
-      } catch {
-        // fall through to local estimates
-      }
-
-      const entries = await getEntries();
+    function getStats() {
+      const entries = getEntries();
       const totalRuns = entries.length;
       const bestScore = entries.reduce((max, entry) => Math.max(max, Number(entry.score) || 0), 0);
       const avgScore = totalRuns ? Math.round(entries.reduce((sum, entry) => sum + (Number(entry.score) || 0), 0) / totalRuns) : 0;
@@ -404,10 +385,10 @@
       };
     }
 
-    async function renderLeaderboard() {
+    function renderLeaderboard() {
       const tbody = document.getElementById('leaderboard-body');
       if (!tbody) return;
-      const entries = (await getEntries()).slice(0, 10);
+      const entries = getEntries().slice(0, 10);
       if (!entries.length) {
         tbody.innerHTML = '<tr><td colspan="4" class="empty-row">No scores submitted yet.</td></tr>';
         return;
@@ -423,8 +404,8 @@
       `).join('');
     }
 
-    async function renderStats() {
-      const stats = await getStats();
+    function renderStats() {
+      const stats = getStats();
       document.getElementById('best-score').textContent = Number(stats.bestScore || 0).toLocaleString();
       document.getElementById('avg-score').textContent = Number(stats.avgScore || 0).toLocaleString();
       document.getElementById('total-runs').textContent = Number(stats.totalRuns || 0).toLocaleString();
@@ -433,9 +414,9 @@
       document.getElementById('top-level').textContent = Number(stats.highestLevel || 1).toLocaleString();
     }
 
-    async function refreshFromStorage() {
-      await renderLeaderboard();
-      await renderStats();
+    function refreshFromStorage() {
+      renderLeaderboard();
+      renderStats();
     }
 
     renderLeaderboard();
