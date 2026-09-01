@@ -257,7 +257,7 @@ function applyDifficultySettings() {
 function applySettings() {
   const compactMobile = window.matchMedia('(max-width: 700px), (max-height: 560px)').matches;
   const guiMin = compactMobile ? 60 : 80;
-  const guiMax = compactMobile ? 100 : 170;
+  const guiMax = compactMobile ? 160 : 170;
   settings.guiScale = Math.min(guiMax, Math.max(guiMin, Number(settings.guiScale) || guiMax));
 
   audio.setMusicVolume(settings.music / 100);
@@ -322,7 +322,7 @@ function applySettings() {
   if (refreshOut) refreshOut.textContent = `${settings.refreshRate} Hz`;
   if (guiScaleOut) guiScaleOut.textContent = `${settings.guiScale}%`;
   const uiScale = compactMobile
-    ? Math.min(1, Math.max(0.6, settings.guiScale / 100))
+    ? Math.min(1.6, Math.max(0.6, settings.guiScale / 100))
     : Math.min(1.7, Math.max(0.8, settings.guiScale / 100));
   document.documentElement.style.setProperty('--ui-scale', String(uiScale));
   const win = isElectronRuntime && electronApi && electronApi.remote ? electronApi.remote.getCurrentWindow() : null;
@@ -1004,6 +1004,23 @@ if (controlsToggle) {
   controlsToggle.addEventListener('click', () => {
     settings.controlsVisible = !settings.controlsVisible;
     applySettings();
+  });
+}
+
+const difficultyToggle = $('difficulty-toggle');
+if (difficultyToggle) {
+  const difficultyPanel = document.getElementById('difficulty-panel');
+  const difficultyButtons = document.getElementById('difficulty-buttons');
+  const setDifficultyPanelState = (collapsed) => {
+    if (!difficultyPanel) return;
+    difficultyPanel.classList.toggle('is-collapsed', collapsed);
+    if (difficultyToggle) difficultyToggle.setAttribute('aria-expanded', String(!collapsed));
+    if (difficultyButtons) difficultyButtons.hidden = collapsed;
+  };
+  setDifficultyPanelState(true);
+  difficultyToggle.addEventListener('click', () => {
+    const collapsed = !difficultyPanel || difficultyPanel.classList.contains('is-collapsed');
+    setDifficultyPanelState(!collapsed);
   });
 }
 

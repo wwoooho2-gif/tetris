@@ -344,6 +344,20 @@ body::after {
   padding: 0;
 }
 
+.difficulty-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
 .difficulty-panel h2 {
   margin: 0;
   font-size: 10px;
@@ -351,6 +365,25 @@ body::after {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.difficulty-toggle-indicator {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--aqua);
+  transition: transform .15s ease;
+}
+
+.difficulty-panel.is-collapsed .difficulty-toggle-indicator {
+  transform: rotate(-90deg);
+}
+
+.difficulty-panel.is-collapsed .difficulty-buttons {
+  display: none;
+}
+
+.difficulty-panel.is-collapsed {
+  padding-bottom: 9px;
 }
 
 .difficulty-buttons {

@@ -52,9 +52,12 @@
         <div class="stat stat-stage" id="row-stage"><span>Stage</span><b id="ui-stage">THE DOCKS</b></div>
       </section>
 
-      <section class="panel difficulty-panel">
-        <h2>Difficulty</h2>
-        <div class="difficulty-buttons">
+      <section class="panel difficulty-panel is-collapsed" id="difficulty-panel">
+        <button class="difficulty-toggle" id="difficulty-toggle" type="button" aria-expanded="false" aria-controls="difficulty-buttons">
+          <h2>Difficultys</h2>
+          <span class="difficulty-toggle-indicator" aria-hidden="true">▾</span>
+        </button>
+        <div class="difficulty-buttons" id="difficulty-buttons" hidden>
           <button class="difficulty-btn" id="btn-diff-easy" data-difficulty="easy" type="button" aria-pressed="false">Easy</button>
           <button class="difficulty-btn" id="btn-diff-normal" data-difficulty="normal" type="button" aria-pressed="true">Normal</button>
           <button class="difficulty-btn" id="btn-diff-hard" data-difficulty="hard" type="button" aria-pressed="false">Hard</button>
@@ -119,7 +122,7 @@
               </label>
               <label class="setting">
                 <span>GUI scale</span>
-                <input type="range" id="opt-gui-scale" min="80" max="170" step="5" value="100">
+                <input type="range" id="opt-gui-scale" min="60" max="160" step="5" value="100">
                 <output id="out-gui-scale">100%</output>
               </label>
               <div class="toggles">
