@@ -7,7 +7,8 @@
   "main": "electron-main.cjs",
   "scripts": {
     "start": "electron . --no-sandbox",
-    "server": "node server.js"
+    "server": "node server.js",
+    "dist": "electron-builder --win portable"
   },
   "build": {
     "appId": "com.fishthatstuff.tetris",
@@ -36,5 +37,8 @@
   "dependencies": {
     "discord-rpc": "^4.0.1",
     "electron": "^44.0.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^24.13.0"
   }
 }

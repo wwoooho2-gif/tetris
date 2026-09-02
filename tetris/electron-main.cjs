@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const fs = require('node:fs');
 const path = require('node:path');
 
 const iconPath = path.join(__dirname, 'assets', 'fish-logo.ico');
@@ -136,6 +137,33 @@ ipcMain.handle('get-fullscreen', (event) => {
 
 ipcMain.handle('set-discord-activity', (event, activity) => {
   setDiscordActivity(activity);
+});
+
+ipcMain.handle('download-current-exe', async () => {
+  const targetPath = process.execPath;
+  if (!targetPath || !targetPath.toLowerCase().endsWith('.exe')) {
+    return { ok: false, reason: 'This build is not running from a Windows executable.' };
+  }
+
+  const saveResult = await dialog.showSaveDialog({
+    title: 'Download FISH THAT STUFF as EXE',
+    defaultPath: 'FISH-THAT-STUFF-Tetris.exe',
+    filters: [{ name: 'Executable', extensions: ['exe'] }],
+    showsTagField: false,
+    securityScopedBookmarks: false
+  });
+
+  if (saveResult.canceled || !saveResult.filePath) {
+    return { ok: false, reason: 'cancelled' };
+  }
+
+  try {
+    fs.copyFileSync(targetPath, saveResult.filePath);
+    return { ok: true, path: saveResult.filePath };
+  } catch (error) {
+    console.error('Failed to export EXE:', error);
+    return { ok: false, reason: error.message || 'unknown error' };
+  }
 });
 
 app.whenReady().then(() => {
