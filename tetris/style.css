@@ -225,18 +225,6 @@ body::after {
   border-color: var(--mint);
   box-shadow: 0 0 16px color-mix(in srgb, var(--mint) 45%, transparent);
 }
-.chip-download {
-  color: var(--text);
-  border-color: color-mix(in srgb, var(--mint) 60%, var(--line));
-  background: linear-gradient(135deg, rgba(53, 240, 200, 0.2), rgba(64, 220, 245, 0.12));
-}
-.chip-download:hover {
-  box-shadow: 0 0 0 1px rgba(64, 220, 245, 0.5), 0 0 16px rgba(64, 220, 245, 0.2);
-}
-.chip:disabled {
-  opacity: 0.7;
-  cursor: wait;
-}
 
 /* layout */
 .stage {

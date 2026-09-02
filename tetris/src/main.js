@@ -1028,41 +1028,6 @@ if (botBtn) {
   });
 }
 
-const downloadExeBtn = $('btn-download-exe');
-if (downloadExeBtn) {
-  downloadExeBtn.addEventListener('click', async () => {
-    if (!isElectronRuntime || !ipcRenderer) {
-      window.alert('The EXE export is only available in the desktop app build.');
-      return;
-    }
-
-    try {
-      downloadExeBtn.disabled = true;
-      downloadExeBtn.textContent = 'Saving...';
-      const result = await ipcRenderer.invoke('download-current-exe');
-
-      if (result && result.ok) {
-        const savedPath = result.path || 'your selected location';
-        downloadExeBtn.textContent = 'Saved!';
-        window.alert(`Your EXE was saved to:\n${savedPath}`);
-      } else if (result && result.reason === 'cancelled') {
-        downloadExeBtn.textContent = 'Download EXE';
-      } else {
-        downloadExeBtn.textContent = 'Failed';
-        window.alert(`Unable to save the EXE.\n${result && result.reason ? result.reason : 'Unknown error'}`);
-      }
-    } catch (error) {
-      downloadExeBtn.textContent = 'Failed';
-      window.alert(`Unable to save the EXE.\n${error && error.message ? error.message : error}`);
-    } finally {
-      setTimeout(() => {
-        downloadExeBtn.disabled = false;
-        downloadExeBtn.textContent = 'Download EXE';
-      }, 1800);
-    }
-  });
-}
-
 
 // Difficulty selector buttons
 ['easy', 'normal', 'hard', 'extreme'].forEach((diff) => {
