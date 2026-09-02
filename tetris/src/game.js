@@ -170,7 +170,7 @@ export class Game {
       const extraBoost = Math.pow(0.95, l - 100); // Continues to accelerate past level 100
       base *= extraBoost;
     }
-    
+
     return Math.max(0.0001, (base / this.stageSpeed) / this.difficultySpeedMultiplier);
   }
 

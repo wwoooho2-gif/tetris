@@ -4,7 +4,18 @@ export const UI_THEMES = {
   toxic: { name: 'Toxic', stops: ['#c6ff4d', '#5ef08a', '#12b981'] },
   vapor: { name: 'Vapor', stops: ['#ff9ae0', '#b98cff', '#5b6cff'] },
   ember: { name: 'Ember', stops: ['#ffd08a', '#ff8a4d', '#e0342f'] },
-  mono: { name: 'Mono', stops: ['#eaf6ff', '#9db4c6', '#5b7285'] }
+  docksideClassic: { name: 'Old Classic', stops: ['#b9efe7', '#5ad9d9', '#183a46'] },
+  mono: { name: 'Black & White', stops: ['#ffffff', '#d4d4d4', '#050505'] }
+};
+
+export const THEME_BACKGROUNDS = {
+  fish: 'reef',
+  sunset: 'ember',
+  toxic: 'tide',
+  vapor: 'aurora',
+  ember: 'ember',
+  oldClassic: 'docksideClassic',
+  mono: 'mono'
 };
 
 export const BG_PRESETS = {
@@ -16,6 +27,7 @@ export const BG_PRESETS = {
   ember: 'Ember',
   dusk: 'Dusk',
   frost: 'Frost',
+  mono: 'Black & White',
   custom: 'Custom'
 };
 
@@ -36,6 +48,10 @@ const GRADIENTS = {
   ember: `radial-gradient(780px 520px at 30% 12%, rgba(255, 150, 80, 0.34), transparent 62%),
          radial-gradient(720px 640px at 68% 70%, rgba(255, 80, 120, 0.34), transparent 70%),
          linear-gradient(180deg, rgba(17, 6, 9, 0.18), rgba(10, 4, 5, 0.82))`,
+  docksideClassic: `radial-gradient(700px 520px at 18% 16%, rgba(91, 212, 210, 0.18), transparent 68%),
+                  radial-gradient(760px 620px at 84% 78%, rgba(35, 104, 127, 0.22), transparent 72%),
+                  linear-gradient(180deg, rgba(6, 18, 24, 0.94), rgba(4, 11, 18, 0.98)),
+                  repeating-linear-gradient(0deg, rgba(120, 205, 224, 0.06) 0 1px, transparent 1px 8px)`,
   dusk: `radial-gradient(660px 620px at 50% 16%, rgba(180, 154, 255, 0.22), transparent 62%),
         radial-gradient(760px 560px at 18% 74%, rgba(70, 135, 255, 0.18), transparent 68%),
         linear-gradient(180deg, rgba(12, 10, 28, 0.18), rgba(8, 6, 20, 0.82)),
@@ -43,7 +59,11 @@ const GRADIENTS = {
   frost: `radial-gradient(760px 620px at 25% 20%, rgba(188, 234, 255, 0.18), transparent 62%),
          radial-gradient(720px 560px at 80% 72%, rgba(120, 179, 255, 0.16), transparent 70%),
          linear-gradient(180deg, rgba(5, 17, 24, 0.08), rgba(3, 11, 18, 0.8)),
-         repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 9px)`
+         repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 9px)`,
+  mono: `radial-gradient(760px 500px at 18% 18%, rgba(255,255,255,0.10), transparent 64%),
+        radial-gradient(820px 640px at 82% 78%, rgba(180,180,180,0.08), transparent 72%),
+        linear-gradient(180deg, rgba(8, 8, 8, 0.98), rgba(0, 0, 0, 1)),
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 8px)`
 };
 
 function hexToHsl(hex) {
@@ -122,6 +142,7 @@ export function applyUiTheme(key, customHex) {
   root.setProperty('--bg-color-1', stops[0]);
   root.setProperty('--bg-color-2', stops[1]);
   root.setProperty('--bg-color-3', stops[2]);
+  document.body.dataset.theme = key;
 
   const [h, s] = hexToHsl(base);
   root.setProperty('--line', hsl(h, clamp(s * 0.55, 12, 48), 23));
@@ -132,14 +153,16 @@ export function applyUiTheme(key, customHex) {
 }
 
 export function applyBackground(layer, preset, dataUrl, fade) {
-  const useImage = preset === 'custom' && dataUrl;
+  const themeKey = document.body.dataset.theme || 'fish';
+  const resolvedPreset = preset === 'none' ? (THEME_BACKGROUNDS[themeKey] || 'reef') : preset;
+  const useImage = resolvedPreset === 'custom' && dataUrl;
   layer.style.opacity = String(clamp(1 - fade / 100, 0, 1));
   if (useImage) {
     layer.style.backgroundImage = `url("${dataUrl}")`;
     layer.style.backgroundSize = 'cover';
     layer.style.backgroundPosition = 'center';
-  } else if (GRADIENTS[preset]) {
-    layer.style.backgroundImage = GRADIENTS[preset];
+  } else if (GRADIENTS[resolvedPreset]) {
+    layer.style.backgroundImage = GRADIENTS[resolvedPreset];
     layer.style.backgroundSize = 'cover';
   } else {
     layer.style.backgroundImage = 'none';

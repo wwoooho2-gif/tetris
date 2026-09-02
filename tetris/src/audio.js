@@ -202,6 +202,15 @@ export const MUSIC_THEMES = {
     kick: true,
     hat: true
   },
+  oldClassic: {
+    name: 'Old Classic',
+    bpm: 112,
+    bars: DOCKSIDE,
+    lead: { type: 'triangle', gain: 0.06, octave: true, sustain: 1.4 },
+    bass: { type: 'sine', gain: 0.18, pattern: 'hold' },
+    kick: true,
+    hat: false
+  },
   lagoon: {
     name: 'Lagoon',
     bpm: 132,

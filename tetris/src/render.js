@@ -188,8 +188,10 @@ export class Renderer {
       ctx.translate(Math.cos(a) * fx.shake, Math.sin(a) * fx.shake);
     }
 
-    this.activeStage = STAGES[game.stagesOn ? game.stage : 0];
-    if (!game.stagesOn && this.accentWell) this.activeStage = this.accentWell;
+    this.activeStage = this.accentWell || STAGES[0];
+    if (game.stagesOn) {
+      this.activeStage = this.accentWell || STAGES[Math.min(game.stage, STAGES.length - 1)];
+    }
     this.drawWell(ctx, w, h, game);
     this.drawBubbles(ctx, w, h, dt, fx);
     this.drawFish(ctx, fx);

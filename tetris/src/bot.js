@@ -204,7 +204,7 @@ export class Bot {
     this.avgScore = 0;
     this.avgLines = 0;
     this.winRate = 0;  // % of games reaching level 5+
-    this.aggressionLevel = 1.0;  // 0.5 = defensive, 1.0 = balanced, 1.5 = aggressive
+    this.aggressionLevel = 1.5;  // Normal balanced bot tuning: no sustained combo boost
     this.learningEnabled = true;
     
     // SMART MODE: Pattern tracking and strategic analysis
@@ -273,22 +273,17 @@ export class Bot {
     this.avgLines = this.gameHistory.reduce((sum, g) => sum + g.lines, 0) / this.gameHistory.length;
     this.winRate = this.gameHistory.filter(g => g.success).length / this.gameHistory.length;
     
-    // SMART: Detect losing streak and boost safety
+    // Keep the AI at the standard balanced setting instead of chasing long-term combo aggression.
     if (this.consecutiveFailures > 3) {
       this.failureBias = Math.min(15, this.failureBias + 0.5);
-      this.aggressionLevel = Math.max(0.3, this.aggressionLevel - 0.2);
     }
-    
-    // Self-adapt: if winning, become more aggressive; if losing, become more defensive
     if (this.winRate > 0.6) {
-      this.aggressionLevel = Math.min(1.8, this.aggressionLevel + 0.1);
       this.failureBias = Math.max(0, this.failureBias - 0.2);
       this.consecutiveFailures = 0;  // Reset failure counter on success
     } else if (this.winRate < 0.3) {
-      this.aggressionLevel = Math.max(0.5, this.aggressionLevel - 0.15);
       this.failureBias = Math.min(10, this.failureBias + 0.3);
     }
-    
+    this.aggressionLevel = 1.5;
     this.perBeat = Math.max(0.25, 0.35 - this.skill * 0.05);
   }
 
@@ -297,14 +292,13 @@ export class Bot {
     if (this.learningEnabled) {
       this.skill = Math.min(12, this.skill + 0.05 * lines);
       
-      // SMART: Track tetris clears for momentum
+      // Keep the bot's normal placement profile; tetris streaks should not permanently boost aggression.
       if (lines === 4) {
         this.tetrisStreak += 1;
-        // Boost aggression on tetris streak
-        this.aggressionLevel = Math.min(1.9, this.aggressionLevel + 0.15);
       } else {
         this.tetrisStreak = 0;
       }
+      this.aggressionLevel = 1.5;
     }
   }
 
@@ -351,11 +345,10 @@ export class Bot {
     // SMART: Analyze board state for dynamic strategy adjustment
     const boardState = this.getBoardPressure(game);
     if (boardState.pressure > 0.7) {
-      // PANIC MODE: Board getting full - boost safety bias
       this.failureBias = Math.min(15, this.failureBias + 0.3);
-      this.aggressionLevel = Math.max(0.5, this.aggressionLevel - 0.1);
     }
-    
+    this.aggressionLevel = 1.5;
+
     // Keep the user-configured bot speed; the AI can still improve placement quality without
     // forcing the bot to slow down on every update.
     if (this.perBeat < 1) this.perBeat = 1;

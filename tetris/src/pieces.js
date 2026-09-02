@@ -10,6 +10,7 @@ const BASE = {
   O: [[1, 1], [1, 1]],
   S: [[0, 1, 1], [1, 1, 0], [0, 0, 0]],
   T: [[0, 1, 0], [1, 1, 1], [0, 0, 0]],
+  T_LONG: [[0, 1, 0], [0, 1, 0], [1, 1, 1]],
   Z: [[1, 1, 0], [0, 1, 1], [0, 0, 0]],
   P: [[0, 1, 0], [1, 1, 1], [0, 1, 0]],  // Plus shape for hard mode
   X: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],  // Slash shape for extreme mode
@@ -17,8 +18,8 @@ const BASE = {
 };
 
 export const PIECE_KEYS = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
-export const PIECE_KEYS_HARD = ['I', 'J', 'L', 'O', 'S', 'T', 'Z', 'P'];  // Hard mode includes plus
-export const PIECE_KEYS_EXTREME = ['I', 'J', 'L', 'O', 'S', 'T', 'Z', 'P', 'X', 'Q'];  // Extreme mode includes plus, slash, and backslash
+export const PIECE_KEYS_HARD = ['I', 'J', 'L', 'O', 'S', 'T', 'Z', 'P', 'T_LONG'];
+export const PIECE_KEYS_EXTREME = ['I', 'J', 'L', 'O', 'S', 'T', 'Z', 'P', 'X', 'Q', 'T_LONG'];
 
 export const COLORS = {
   I: { light: '#a9fff0', base: '#35f0c8', dark: '#0e7d68' },
@@ -27,6 +28,7 @@ export const COLORS = {
   O: { light: '#fff2a8', base: '#ffd84d', dark: '#8f7212' },
   S: { light: '#a6f5c6', base: '#3ddc84', dark: '#14713f' },
   T: { light: '#d9b4ff', base: '#a05cf0', dark: '#4d1f8c' },
+  T_LONG: { light: '#ffd1dc', base: '#ff5da2', dark: '#8a2d55' },
   Z: { light: '#ffb3c6', base: '#ff5b7f', dark: '#8c1f38' },
   P: { light: '#ff9ff0', base: '#ff00ff', dark: '#8c0098' },  // Bright magenta for plus
   X: { light: '#ffff99', base: '#ffff00', dark: '#999900' },  // Bright yellow for slash
@@ -42,6 +44,7 @@ export const COLOR_THEMES = {
     O: { light: '#fff2a8', base: '#ffd84d', dark: '#8f7212' },
     S: { light: '#a6f5c6', base: '#3ddc84', dark: '#14713f' },
     T: { light: '#d9b4ff', base: '#a05cf0', dark: '#4d1f8c' },
+    T_LONG: { light: '#ffd1dc', base: '#ff5da2', dark: '#8a2d55' },
     Z: { light: '#ffb3c6', base: '#ff5b7f', dark: '#8c1f38' },
     P: { light: '#ff9ff0', base: '#ff00ff', dark: '#8c0098' },
     X: { light: '#ffff99', base: '#ffff00', dark: '#999900' },
@@ -54,6 +57,7 @@ export const COLOR_THEMES = {
     O: { light: '#ff00ff', base: '#ff00ff', dark: '#aa00aa' },
     S: { light: '#00ff00', base: '#00ff80', dark: '#00aa55' },
     T: { light: '#ff0080', base: '#ff0000', dark: '#aa0000' },
+    T_LONG: { light: '#ffdd88', base: '#ffb000', dark: '#8f5d00' },
     Z: { light: '#00ffff', base: '#0080ff', dark: '#0055aa' },
     P: { light: '#ffff00', base: '#ffff00', dark: '#aaaa00' },
     X: { light: '#ff00ff', base: '#ff00ff', dark: '#aa00aa' },
@@ -66,6 +70,7 @@ export const COLOR_THEMES = {
     O: { light: '#ffd1dc', base: '#ffb6de', dark: '#cc8fa3' },
     S: { light: '#98fb98', base: '#90ee90', dark: '#5fb55f' },
     T: { light: '#ffc0cb', base: '#ff69b4', dark: '#cc4477' },
+    T_LONG: { light: '#ffd8a8', base: '#ff9f1c', dark: '#8a4d00' },
     Z: { light: '#ffe4b5', base: '#ffa500', dark: '#cc8400' },
     P: { light: '#e6b3ff', base: '#d580ff', dark: '#aa55cc' },
     X: { light: '#ffffe0', base: '#fffacd', dark: '#cccc99' },
@@ -78,6 +83,7 @@ export const COLOR_THEMES = {
     O: { light: '#ff4400', base: '#ff2200', dark: '#cc1100' },
     S: { light: '#ff9900', base: '#ff6600', dark: '#cc5500' },
     T: { light: '#ffff00', base: '#ffdd00', dark: '#ccbb00' },
+    T_LONG: { light: '#ffdd99', base: '#ff8800', dark: '#8a4a00' },
     Z: { light: '#ff5500', base: '#ff3300', dark: '#cc2200' },
     P: { light: '#ff0000', base: '#ff0000', dark: '#cc0000' },
     X: { light: '#ffaa00', base: '#ff8800', dark: '#cc6600' },
@@ -90,6 +96,7 @@ export const COLOR_THEMES = {
     O: { light: '#f0f8ff', base: '#e0f0ff', dark: '#a8ccff' },
     S: { light: '#d8f8ff', base: '#a8f0ff', dark: '#70cccc' },
     T: { light: '#f0e8ff', base: '#d8d8ff', dark: '#a8a8ff' },
+    T_LONG: { light: '#d9f7ff', base: '#70d6ff', dark: '#256d97' },
     Z: { light: '#e8e8ff', base: '#c8c8ff', dark: '#9090ff' },
     P: { light: '#d0f0ff', base: '#a0e8ff', dark: '#6accff' },
     X: { light: '#f0f0ff', base: '#e0e0ff', dark: '#b0b0ff' },
@@ -114,6 +121,7 @@ export const COLOR_THEMES = {
     O: { light: '#dfffb8', base: '#c8ef5e', dark: '#7a9d17' },
     S: { light: '#d9ffe9', base: '#68e39d', dark: '#1f9150' },
     T: { light: '#d8d2ff', base: '#9d8cff', dark: '#4f53b3' },
+    T_LONG: { light: '#f6d7ff', base: '#d87dff', dark: '#6e2e9b' },
     Z: { light: '#d9f0ff', base: '#7cc7ff', dark: '#2a6fb0' },
     P: { light: '#efd9ff', base: '#c785ff', dark: '#6832a4' },
     X: { light: '#ebfff0', base: '#9ef7b5', dark: '#2e9b5d' },
@@ -126,10 +134,24 @@ export const COLOR_THEMES = {
     O: { light: '#fdf1b2', base: '#f7e062', dark: '#a98b00' },
     S: { light: '#d9ffe8', base: '#6ee7a9', dark: '#1d8c5a' },
     T: { light: '#e3d5ff', base: '#b08cff', dark: '#5d4fbe' },
+    T_LONG: { light: '#ffe4b2', base: '#ffb347', dark: '#8d4f00' },
     Z: { light: '#ffd9e0', base: '#ff7ea8', dark: '#aa2d5d' },
     P: { light: '#ffe4ff', base: '#ff8af7', dark: '#ad38b5' },
     X: { light: '#fff0b3', base: '#ffd93d', dark: '#a98300' },
     Q: { light: '#ffc8c8', base: '#ff7d7d', dark: '#ac2a2a' }
+  },
+  mono: {
+    I: { light: '#f5f5f5', base: '#d9d9d9', dark: '#1a1a1a' },
+    J: { light: '#d0d0d0', base: '#8a8a8a', dark: '#111111' },
+    L: { light: '#ffffff', base: '#f0f0f0', dark: '#282828' },
+    O: { light: '#eaeaea', base: '#bfbfbf', dark: '#000000' },
+    S: { light: '#cfcfcf', base: '#909090', dark: '#1f1f1f' },
+    T: { light: '#f0f0f0', base: '#c7c7c7', dark: '#0b0b0b' },
+    T_LONG: { light: '#ffffff', base: '#d9d9d9', dark: '#0f0f0f' },
+    Z: { light: '#efefef', base: '#a8a8a8', dark: '#2b2b2b' },
+    P: { light: '#ffffff', base: '#e2e2e2', dark: '#111111' },
+    X: { light: '#fafafa', base: '#d1d1d1', dark: '#050505' },
+    Q: { light: '#ececec', base: '#9d9d9d', dark: '#151515' }
   }
 };
 
@@ -157,7 +179,7 @@ function cellsOf(m) {
 }
 
 export const PIECES = {};
-const ALL_KEYS = ['I', 'J', 'L', 'O', 'S', 'T', 'Z', 'P', 'X', 'Q'];
+const ALL_KEYS = ['I', 'J', 'L', 'O', 'S', 'T', 'T_LONG', 'Z', 'P', 'X', 'Q'];
 for (const key of ALL_KEYS) {
   const states = [BASE[key]];
   for (let i = 1; i < 4; i++) states.push(rotateCW(states[i - 1]));
