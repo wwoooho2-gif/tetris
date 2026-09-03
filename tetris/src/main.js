@@ -163,7 +163,7 @@ function syncDifficultyButtons() {
 }
 
 function applyDifficultySettings() {
-  game.difficulty = settings.difficulty;
+  game.setDifficulty(settings.difficulty);
   if (settings.difficulty === 'easy') {
     game.difficultySpeedMultiplier = 0.7;
     game.difficultyScoreMultiplier = 0.5;
@@ -686,6 +686,13 @@ document.addEventListener('touchstart', async () => {
 document.addEventListener('contextmenu', (event) => {
   event.preventDefault();
 });
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('button');
+  if (!button || button.disabled || button.closest('.touch')) return;
+  if (button.dataset.cmd || button.classList.contains('difficulty-btn') || button.classList.contains('theme-tab')) return;
+  audio.unlock();
+  audio.play('ui');
+});
 window.addEventListener('keydown', async (event) => {
   const key = event.key || '';
   const isDevtoolsCombo =
@@ -924,13 +931,16 @@ if (difficultyToggle) {
 
 const soundBtn = $('btn-sound');
 if (soundBtn) {
-  soundBtn.addEventListener('click', () => {
-    audio.unlock();
+  soundBtn.addEventListener('click', async () => {
+    await audio.unlock();
     settings.musicOn = !settings.musicOn;
     applySettings();
+    if (settings.musicOn && !audio.playing) {
+      audio.setTheme(settings.musicTheme, game.level, game.stageSpeed);
+      await audio.startMusic(game.level);
+    }
   });
 }
-
 
 const settingsBtn = $('btn-settings');
 if (settingsBtn) {
@@ -959,7 +969,6 @@ if (botBtn) {
   });
 }
 
-
 // Difficulty selector buttons
 ['easy', 'normal', 'hard', 'extreme'].forEach((diff) => {
   const btn = $(`btn-diff-${diff}`);
@@ -967,7 +976,7 @@ if (botBtn) {
     btn.addEventListener('click', () => {
       audio.unlock();
       settings.difficulty = diff;
-      game.difficulty = diff;
+      game.setDifficulty(diff);
       applySettings();
       syncDifficultyButtons();
       audio.play('hold');

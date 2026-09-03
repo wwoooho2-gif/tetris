@@ -382,6 +382,9 @@ export class AudioEngine {
   play(name, data = {}) {
     if (!this.ctx) return;
     switch (name) {
+      case 'ui':
+        this.tone({ f: 620, to: 760, type: 'triangle', dur: 0.045, gain: 0.09 });
+        break;
       case 'move':
         this.tone({ f: 180, type: 'square', dur: 0.035, gain: 0.09 });
         break;

@@ -45,7 +45,8 @@ const CLEAR_NAME = ['', 'SINGLE', 'DOUBLE', 'TRIPLE', 'TETRIS'];
 export class Game {
   constructor() {
     this.listeners = [];    // Event subscribers for game events
-    this.best = Number(localStorage.getItem('tetris.best') || 0); // Best score ever
+    this.bestByDifficulty = this.loadBestScores();
+    this.best = this.bestByDifficulty.normal; // Best score for the active difficulty
     this.autoplay = false;  // Ignore best-score persistence while auto-play is active
     this.scoreEligibleForBest = !this.autoplay;
     this.stagesOn = true;
@@ -53,6 +54,26 @@ export class Game {
     this.difficultySpeedMultiplier = 3.5;  // Speed multiplier based on difficulty
     this.difficultyScoreMultiplier = 1.0;  // Score multiplier based on difficulty
     this.reset();
+  }
+
+  loadBestScores() {
+    const legacyBest = Number(localStorage.getItem('tetris.best') || 0);
+    try {
+      const saved = JSON.parse(localStorage.getItem('tetris.bests') || '{}');
+      return {
+        easy: Number(saved.easy) || 0,
+        normal: Number(saved.normal) || legacyBest,
+        hard: Number(saved.hard) || 0,
+        extreme: Number(saved.extreme) || 0
+      };
+    } catch {
+      return { easy: 0, normal: legacyBest, hard: 0, extreme: 0 };
+    }
+  }
+
+  setDifficulty(difficulty) {
+    this.difficulty = difficulty;
+    this.best = this.bestByDifficulty[difficulty] || 0;
   }
 
   /**
@@ -398,7 +419,8 @@ export class Game {
     this.active = null;
     if (this.scoreEligibleForBest && this.score > this.best) {
       this.best = this.score;
-      localStorage.setItem('tetris.best', String(this.best));
+      this.bestByDifficulty[this.difficulty] = this.best;
+      localStorage.setItem('tetris.bests', JSON.stringify(this.bestByDifficulty));
     }
     this.emit('gameover');
   }
